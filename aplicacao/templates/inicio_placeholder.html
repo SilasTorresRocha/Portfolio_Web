@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block conteudo %}
+<section class="bloco">
+  <p class="rotulo-secao">FASE 1 · FUNDAÇÃO ATIVA</p>
+  <h1 class="titulo-pagina">{{ perfil.nome or "Portfólio Técnico" }}</h1>
+  <p class="subtitulo-pagina">{{ perfil.subtitulo or "Base FastAPI, SQLite, Logs, Auth e Docker operando corretamente." }}</p>
+
+  <div class="acoes-linha">
+    <a class="botao botao-primario" href="/config">Acessar painel /config</a>
+    <a class="botao" href="/saude">Verificar /saude (JSON)</a>
+  </div>
+</section>
+
+<section class="grade-metricas" style="margin-top: 20px;">
+  <div class="cartao-metrica">
+    <div class="metrica-rotulo">Banco SQLite</div>
+    <div class="metrica-valor">ATIVO</div>
+    <div class="metrica-detalhe">modo {{ resumo.journal_mode }} · {{ resumo.tamanho_kb }} KB</div>
+  </div>
+  <div class="cartao-metrica">
+    <div class="metrica-rotulo">Projetos cadastrados</div>
+    <div class="metrica-valor">{{ resumo.total_projetos }}</div>
+    <div class="metrica-detalhe">{{ resumo.projetos_publicados }} publicados</div>
+  </div>
+  <div class="cartao-metrica">
+    <div class="metrica-rotulo">Próxima etapa</div>
+    <div class="metrica-valor">FASE 2</div>
+    <div class="metrica-detalhe">Vitrine pública + /projeto/{slug}</div>
+  </div>
+</section>
+{% endblock %}
+

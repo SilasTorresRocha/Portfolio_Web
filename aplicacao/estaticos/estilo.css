@@ -1,0 +1,399 @@
+/* ==========================================================================
+   Portfólio Técnico — Folha de Estilos Base (Dark Mode Técnico)
+   Referência: PrincipioProjeto.md (sem degradês neon, sem glow, bordas 1px)
+   ========================================================================== */
+
+:root {
+  --fundo: #0c0e12;
+  --superficie: #14171d;
+  --superficie-elevada: #1b1f27;
+  --borda: #262b35;
+  --borda-forte: #343b48;
+  --texto: #eceff4;
+  --texto-secundario: #9aa3b2;
+  --texto-sutil: #6b7485;
+  --cor-destaque: #3b82f6;
+  --cor-sucesso: #22c55e;
+  --cor-alerta: #eab308;
+  --cor-erro: #ef4444;
+  --fonte-texto: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --fonte-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --raio: 6px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--fundo);
+  color: var(--texto);
+  font-family: var(--fonte-texto);
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--texto);
+  text-decoration: none;
+  transition: color 150ms ease, border-color 150ms ease, background-color 150ms ease;
+}
+
+.mono {
+  font-family: var(--fonte-mono);
+}
+
+.container {
+  width: 100%;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* Barra superior discreta */
+.barra-topo {
+  border-bottom: 1px solid var(--borda);
+  background-color: var(--fundo);
+}
+
+.barra-topo-interna {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 58px;
+}
+
+.marca {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.marca-ponto {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background-color: var(--cor-destaque);
+  display: inline-block;
+}
+
+.navegacao {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.link-nav {
+  font-family: var(--fonte-mono);
+  font-size: 12px;
+  color: var(--texto-secundario);
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  border-radius: var(--raio);
+}
+
+.link-nav:hover {
+  color: var(--texto);
+  border-color: var(--borda);
+  background-color: var(--superficie);
+}
+
+/* Botões */
+.botao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 14px;
+  font-family: var(--fonte-texto);
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: var(--raio);
+  border: 1px solid var(--borda-forte);
+  background-color: var(--superficie-elevada);
+  color: var(--texto);
+  cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+.botao:hover {
+  border-color: var(--texto-sutil);
+  background-color: #222731;
+}
+
+.botao-primario {
+  background-color: var(--cor-destaque);
+  border-color: var(--cor-destaque);
+  color: #ffffff;
+}
+
+.botao-primario:hover {
+  filter: brightness(1.08);
+  border-color: var(--cor-destaque);
+  background-color: var(--cor-destaque);
+}
+
+.botao-perigo {
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+  background-color: rgba(239, 68, 68, 0.08);
+}
+
+.botao-perigo:hover {
+  border-color: rgba(239, 68, 68, 0.7);
+  background-color: rgba(239, 68, 68, 0.16);
+}
+
+/* Painéis e cards */
+.principal {
+  padding: 40px 0 64px;
+}
+
+.bloco {
+  background-color: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  padding: 24px;
+}
+
+.cabecalho-secao {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.rotulo-secao {
+  font-family: var(--fonte-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--cor-destaque);
+  margin: 0 0 6px;
+}
+
+.titulo-pagina {
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin: 0 0 6px;
+}
+
+.subtitulo-pagina {
+  color: var(--texto-secundario);
+  margin: 0;
+  font-size: 14px;
+}
+
+/* Grade de métricas / diagnóstico */
+.grade-metricas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.cartao-metrica {
+  background-color: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  padding: 16px;
+}
+
+.metrica-rotulo {
+  font-family: var(--fonte-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--texto-sutil);
+  margin-bottom: 8px;
+}
+
+.metrica-valor {
+  font-family: var(--fonte-mono);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--texto);
+}
+
+.metrica-detalhe {
+  font-family: var(--fonte-mono);
+  font-size: 12px;
+  color: var(--texto-secundario);
+  margin-top: 6px;
+  word-break: break-word;
+}
+
+/* Formulários */
+.caixa-login {
+  max-width: 420px;
+  margin: 48px auto;
+}
+
+.campo {
+  margin-bottom: 16px;
+}
+
+.campo label {
+  display: block;
+  font-family: var(--fonte-mono);
+  font-size: 12px;
+  color: var(--texto-secundario);
+  margin-bottom: 6px;
+}
+
+.entrada {
+  width: 100%;
+  padding: 10px 12px;
+  font-family: var(--fonte-texto);
+  font-size: 14px;
+  color: var(--texto);
+  background-color: var(--fundo);
+  border: 1px solid var(--borda-forte);
+  border-radius: var(--raio);
+  outline: none;
+  transition: border-color 150ms ease;
+}
+
+.entrada:focus {
+  border-color: var(--cor-destaque);
+}
+
+/* Alertas */
+.alerta {
+  padding: 12px 14px;
+  border-radius: var(--raio);
+  border: 1px solid var(--borda);
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.alerta-erro {
+  border-color: rgba(239, 68, 68, 0.45);
+  background-color: rgba(239, 68, 68, 0.09);
+  color: #fecaca;
+}
+
+.alerta-aviso {
+  border-color: rgba(234, 179, 8, 0.45);
+  background-color: rgba(234, 179, 8, 0.08);
+  color: #fef08a;
+}
+
+/* Lista técnica de configuração */
+.lista-kv {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 10px 20px;
+  margin: 0;
+}
+
+.item-kv {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--borda);
+  font-size: 13px;
+}
+
+.item-kv dt {
+  color: var(--texto-secundario);
+  font-family: var(--fonte-mono);
+  font-size: 12px;
+}
+
+.item-kv dd {
+  margin: 0;
+  font-family: var(--fonte-mono);
+  font-size: 12px;
+  color: var(--texto);
+  text-align: right;
+}
+
+.selo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--borda-forte);
+  background-color: var(--superficie-elevada);
+  font-family: var(--fonte-mono);
+  font-size: 11px;
+  color: var(--texto-secundario);
+}
+
+.selo-ok {
+  border-color: rgba(34, 197, 94, 0.4);
+  color: #86efac;
+  background-color: rgba(34, 197, 94, 0.08);
+}
+
+/* Visualizador de logs */
+.abas-log {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.aba-log {
+  font-family: var(--fonte-mono);
+  font-size: 12px;
+  padding: 6px 12px;
+  border-radius: var(--raio);
+  border: 1px solid var(--borda);
+  color: var(--texto-secundario);
+  background-color: var(--fundo);
+}
+
+.aba-log.ativa {
+  color: var(--texto);
+  border-color: var(--cor-destaque);
+  background-color: var(--superficie-elevada);
+}
+
+.terminal-logs {
+  background-color: var(--fundo);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  padding: 14px;
+  font-family: var(--fonte-mono);
+  font-size: 12px;
+  line-height: 1.65;
+  color: var(--texto-secundario);
+  max-height: 360px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.linha-log {
+  padding: 2px 0;
+  border-bottom: 1px solid rgba(38, 43, 53, 0.45);
+}
+
+.linha-log:last-child {
+  border-bottom: none;
+}
+
+.acoes-linha {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 20px;
+}
+

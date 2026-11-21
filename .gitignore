@@ -1,0 +1,38 @@
+# Ambiente e segredos
+.env
+.env.local
+.env.*.local
+
+# Dados persistentes (manter apenas estrutura com .gitkeep)
+dados/*
+!dados/.gitkeep
+!dados/banco/
+!dados/midias/
+!dados/logs/
+
+dados/banco/*
+!dados/banco/.gitkeep
+
+dados/midias/*
+!dados/midias/.gitkeep
+
+dados/logs/*
+!dados/logs/.gitkeep
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Editores / SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+

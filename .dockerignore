@@ -1,0 +1,13 @@
+.git
+.gitignore
+.env
+.venv
+venv
+__pycache__
+*.pyc
+dados/*
+!dados/.gitkeep
+*.pdf
+PrincipioProjeto.md
+README.md
+

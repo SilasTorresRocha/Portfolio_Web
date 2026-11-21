@@ -1,0 +1,16 @@
+services:
+  portfolio:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: portfolio_web
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      PORTFOLIO_PASTA_DADOS: /app/dados
+    ports:
+      - "${PORTFOLIO_PORTA:-8000}:8000"
+    volumes:
+      - ./dados:/app/dados
+

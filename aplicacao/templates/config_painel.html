@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block conteudo %}
+<div class="cabecalho-secao">
+  <div>
+    <p class="rotulo-secao">PAINEL /CONFIG · FASE 1</p>
+    <h1 class="titulo-pagina">Status do Sistema e Auditoria</h1>
+    <p class="subtitulo-pagina">
+      Autenticação, banco SQLite e registros rotativos ativos. Os módulos de CRUD de projetos, galeria e perfil entram na Fase 3.
+    </p>
+  </div>
+
+  <form method="post" action="/config/sair">
+    <input type="hidden" name="csrf_token" value="{{ csrf_sair }}">
+    <button type="submit" class="botao botao-perigo">Encerrar sessão</button>
+  </form>
+</div>
+
+<section class="grade-metricas">
+  <div class="cartao-metrica">
+    <div class="metrica-rotulo">Projetos</div>
+    <div class="metrica-valor">{{ resumo_banco.total_projetos }}</div>
+    <div class="metrica-detalhe">{{ resumo_banco.projetos_publicados }} publicados</div>
+  </div>
+  <div class="cartao-metrica">
+    <div class="metrica-rotulo">Tags</div>
+    <div class="metrica-valor">{{ resumo_banco.total_tags }}</div>
+    <div class="metrica-detalhe">tabela pronta</div>
+  </div>
+  <div class="cartao-metrica">
+    <div class="metrica-rotulo">Mídias</div>
+    <div class="metrica-valor">{{ resumo_banco.total_midias }}</div>
+    <div class="metrica-detalhe">imagens em dados/midias</div>
+  </div>
+  <div class="cartao-metrica">
+    <div class="metrica-rotulo">Anexos PDF</div>
+    <div class="metrica-valor">{{ resumo_banco.total_anexos }}</div>
+    <div class="metrica-detalhe">comprovantes e docs</div>
+  </div>
+</section>
+
+<section class="bloco" style="margin-bottom: 20px;">
+  <p class="rotulo-secao">AMBIENTE E SEGURANÇA</p>
+  <dl class="lista-kv">
+    <div class="item-kv">
+      <dt>Ambiente</dt>
+      <dd><span class="selo selo-ok">{{ config.ambiente }}</span></dd>
+    </div>
+    <div class="item-kv">
+      <dt>Banco SQLite</dt>
+      <dd>{{ resumo_banco.journal_mode }} · {{ resumo_banco.tamanho_kb }} KB</dd>
+    </div>
+    <div class="item-kv">
+      <dt>Pasta de dados</dt>
+      <dd>{{ config.pasta_dados }}</dd>
+    </div>
+    <div class="item-kv">
+      <dt>Confiar em proxy (Caddy/CF)</dt>
+      <dd>{{ "ativo" if config.confiar_proxy else "desativado" }}</dd>
+    </div>
+    <div class="item-kv">
+      <dt>Cookie HTTPS (Secure)</dt>
+      <dd>{{ "ativo" if config.cookie_seguro else "desativado (local)" }}</dd>
+    </div>
+    <div class="item-kv">
+      <dt>Limite de tentativas login</dt>
+      <dd>{{ config.max_tentativas_login }} falhas / {{ config.janela_bloqueio_segundos }}s</dd>
+    </div>
+  </dl>
+</section>
+
+<section class="bloco">
+  <div class="cabecalho-secao" style="margin-bottom: 14px;">
+    <div>
+      <p class="rotulo-secao">REGISTROS EM DADOS/LOGS</p>
+      <h2 style="margin: 0; font-size: 16px; font-weight: 600;">Últimas entradas (mais recentes no topo)</h2>
+    </div>
+    <div class="abas-log" style="margin-bottom: 0;">
+      <a class="aba-log {% if tipo_log == 'auditoria' %}ativa{% endif %}" href="/config?aba_log=auditoria">auditoria.log</a>
+      <a class="aba-log {% if tipo_log == 'aplicacao' %}ativa{% endif %}" href="/config?aba_log=aplicacao">aplicacao.log</a>
+    </div>
+  </div>
+
+  <div class="terminal-logs" role="log" aria-label="Registros do sistema">
+    {% if linhas_log %}
+      {% for linha in linhas_log %}
+      <div class="linha-log">{{ linha }}</div>
+      {% endfor %}
+    {% else %}
+      <div class="linha-log">Nenhum registro encontrado ainda neste arquivo.</div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}
+
