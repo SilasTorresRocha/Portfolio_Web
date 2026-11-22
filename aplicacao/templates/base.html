@@ -47,8 +47,14 @@
 
   <footer class="rodape">
     <div class="container rodape-interno">
-      <span>{{ perfil.nome if perfil and perfil.nome else "Portfólio Técnico" }}</span>
-      <span>{{ perfil.titulo_site if perfil and perfil.titulo_site else "" }}</span>
+      <span>{{ perfil.nome if perfil and perfil.nome else "Portfólio" }}</span>
+      <span>
+        {% if REPOSITORIO_URL %}
+        <a href="{{ REPOSITORIO_URL }}" target="_blank" rel="noopener noreferrer" title="Ver código-fonte no GitHub">v{{ VERSAO }}</a>
+        {% else %}
+        v{{ VERSAO }}
+        {% endif %}
+      </span>
     </div>
   </footer>
 

@@ -86,7 +86,8 @@
   </form>
 
   {% if tags %}
-  <div class="barra-tags" role="group" aria-label="Filtrar por tag">
+  {% set limite_tags = 10 %}
+  <div id="barra-tags" class="barra-tags" role="group" aria-label="Filtrar por tag" data-limite-tags="{{ limite_tags }}">
     <a
       href="/"
       class="pilula-tag {% if not tag_atual %}ativa{% endif %}"
@@ -97,16 +98,30 @@
       <span class="pilula-contagem">{{ total_publicados }}</span>
     </a>
     {% for t in tags %}
+    {% set oculta_inicial = (loop.index > limite_tags) and (tag_atual != t.slug) %}
     <a
       href="/?tag={{ t.slug }}"
       class="pilula-tag {% if tag_atual == t.slug %}ativa{% endif %}"
       data-filtro-tag="{{ t.slug }}"
+      {% if loop.index > limite_tags %}data-tag-extra="1"{% endif %}
       aria-pressed="{{ 'true' if tag_atual == t.slug else 'false' }}"
+      {% if oculta_inicial %}hidden{% endif %}
     >
       <span>{{ t.nome }}</span>
       <span class="pilula-contagem">{{ t.total }}</span>
     </a>
     {% endfor %}
+    {% if tags|length > limite_tags %}
+    <button
+      id="botao-expandir-tags"
+      type="button"
+      class="pilula-tag pilula-expandir"
+      data-expandido="0"
+      data-qtd-extras="{{ tags|length - limite_tags }}"
+    >
+      + {{ tags|length - limite_tags }} tags
+    </button>
+    {% endif %}
   </div>
   {% endif %}
 </section>

@@ -30,7 +30,7 @@
         <div class="campo">
           <label for="campo-titulo">Título do projeto *</label>
           <input id="campo-titulo" name="titulo" type="text" class="entrada" value="{{ projeto.titulo or '' }}"
-            placeholder="Ex.: Automação do Poço Artesiano e Dosagem de Cloro" required>
+            placeholder="Ex.: Nome descritivo do projeto" required>
         </div>
 
         <div class="grade-campos-3">
@@ -42,7 +42,7 @@
           <div class="campo">
             <label for="campo-status">Selo / Status (opcional)</label>
             <input id="campo-status" name="status" type="text" class="entrada mono" value="{{ projeto.status or '' }}"
-              placeholder="EM PRODUÇÃO, HARDWARE...">
+              placeholder="EM PRODUÇÃO, CONCLUÍDO...">
           </div>
           <div class="campo">
             <label for="campo-ano">Ano</label>
@@ -55,7 +55,7 @@
           <div class="campo">
             <label for="campo-tags">Tags (separadas por vírgula)</label>
             <input id="campo-tags" name="tags_texto" type="text" class="entrada" value="{{ projeto.tags_texto or '' }}"
-              placeholder="Hardware, Automação, IoT, Em Produção">
+              placeholder="Ex.: Categoria 1, Categoria 2, Destaque">
             {% if todas_tags %}
             <div class="sugestoes-tags" aria-label="Tags já cadastradas">
               {% for t in todas_tags %}
@@ -197,7 +197,7 @@
                 <label for="legenda-{{ m.id }}">Legenda</label>
                 <input id="legenda-{{ m.id }}" name="legenda" type="text" class="entrada"
                   style="padding: 7px 9px; font-size: 13px;" value="{{ m.legenda or '' }}"
-                  placeholder="Ex.: Medição térmica no LM7805">
+                  placeholder="Ex.: Vista geral ou detalhe importante da imagem">
               </div>
               <div class="campo" style="margin-bottom: 8px;">
                 <label for="ordem-{{ m.id }}">Ordem</label>
@@ -239,7 +239,7 @@
           <div class="campo">
             <label for="anexo-titulo">Título amigável do documento</label>
             <input id="anexo-titulo" name="titulo" type="text" class="entrada"
-              placeholder="Ex.: Declaração Oficial nº 10/2026" required>
+              placeholder="Ex.: Comprovante, relatório técnico ou documentação" required>
           </div>
           <div class="campo">
             <label for="anexo-arquivo">Arquivo PDF (até 20 MB)</label>

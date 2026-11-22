@@ -22,7 +22,7 @@ from aplicacao.registros import (
 from aplicacao.rotas.administracao import roteador_admin
 from aplicacao.rotas.publicas import roteador_publico
 from aplicacao.servicos.metricas import agendador_relatorio_diario
-from aplicacao.versao import VERSAO
+from aplicacao.versao import REPOSITORIO_URL, VERSAO
 
 PASTA_APLICACAO = Path(__file__).resolve().parent
 PASTA_TEMPLATES = PASTA_APLICACAO / "templates"
@@ -83,7 +83,10 @@ def criar_aplicacao() -> FastAPI:
 
     PASTA_ESTATICOS.mkdir(parents=True, exist_ok=True)
     app.mount("/estaticos", StaticFiles(directory=str(PASTA_ESTATICOS)), name="estaticos")
-    app.state.templates = Jinja2Templates(directory=str(PASTA_TEMPLATES))
+    templates = Jinja2Templates(directory=str(PASTA_TEMPLATES))
+    templates.env.globals["VERSAO"] = VERSAO
+    templates.env.globals["REPOSITORIO_URL"] = REPOSITORIO_URL
+    app.state.templates = templates
 
     @app.middleware("http")
     async def middleware_requisicoes(request: Request, call_next) -> Response:

@@ -121,3 +121,8 @@ dados/
 * **Pastas, arquivos, funções e variáveis preferencialmente em português** (ex.: `rotas/`, `modelos.py`, `banco.py`, `servicos/`, `salvar_imagem`, `listar_projetos`).
 * **Exceções naturais em inglês** quando o termo já é padrão técnico consolidado no contexto (ex.: `main.py`, `slug`, `payload`, `offset`, `engine`, `Dockerfile`, `docker-compose.yml`).
 
+### Versionamento Semântico
+* A versão da aplicação e a URL do repositório ficam centralizadas exclusivamente em `aplicacao/versao.py` (`VERSAO` e `REPOSITORIO_URL`), seguindo SemVer (`MAJOR.MINOR.PATCH`).
+* Toda alteração relevante deve atualizar `aplicacao/versao.py` e registrar a mudança no `CHANGELOG.md`.
+* A versão é exibida discretamente no rodapé (clicável para o GitHub), no `/saude`, no `/config` e nos logs de inicialização.
+

@@ -518,6 +518,19 @@ a {
   color: var(--texto-secundario);
 }
 
+.pilula-tag[hidden] {
+  display: none;
+}
+
+.pilula-expandir {
+  border-style: dashed;
+  color: var(--texto-sutil);
+}
+
+.pilula-expandir:hover {
+  color: var(--texto);
+}
+
 /* --------------------------------------------------------------------------
    Vitrine — Grade de Cards de Projeto
    -------------------------------------------------------------------------- */
@@ -1741,6 +1754,8 @@ a {
   flex-wrap: wrap;
   gap: 6px;
   margin-top: 8px;
+  max-height: 92px;
+  overflow-y: auto;
 }
 
 .sugestao-tag-btn {

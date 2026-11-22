@@ -24,8 +24,24 @@
     const estadoSemResultado = document.getElementById("estado-sem-resultado");
     const botaoResetFiltros = document.getElementById("botao-reset-filtros");
     const botoesTag = Array.from(document.querySelectorAll("[data-filtro-tag]"));
+    const botaoExpandirTags = document.getElementById("botao-expandir-tags");
+    const tagsExtras = Array.from(document.querySelectorAll("[data-tag-extra='1']"));
 
     if (!grade) return;
+
+    if (botaoExpandirTags && tagsExtras.length > 0) {
+      const qtdExtras = botaoExpandirTags.dataset.qtdExtras || String(tagsExtras.length);
+      botaoExpandirTags.addEventListener("click", () => {
+        const expandido = botaoExpandirTags.dataset.expandido === "1";
+        const novoEstado = !expandido;
+        botaoExpandirTags.dataset.expandido = novoEstado ? "1" : "0";
+        tagsExtras.forEach((el) => {
+          const slug = (el.dataset.filtroTag || "").toLowerCase();
+          el.hidden = !novoEstado && slug !== tagAtiva;
+        });
+        botaoExpandirTags.textContent = novoEstado ? "Mostrar menos" : `+ ${qtdExtras} tags`;
+      });
+    }
 
     const cartoes = Array.from(grade.querySelectorAll(".cartao-projeto"));
     if (cartoes.length === 0) return;

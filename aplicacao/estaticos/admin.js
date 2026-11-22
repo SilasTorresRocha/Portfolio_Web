@@ -113,7 +113,7 @@
       negrito: () => inserirTrecho("**", "**", "texto em destaque"),
       italico: () => inserirTrecho("*", "*", "ênfase"),
       lista: () => inserirTrecho("- ", "\n- ", "Item técnico"),
-      codigo: () => inserirTrecho("`", "`", "ESP32"),
+      codigo: () => inserirTrecho("`", "`", "termo-tecnico"),
       bloco: () => inserirTrecho("```\n", "\n```\n", "// código ou comando"),
       citacao: () => inserirTrecho("> ", "\n", "Observação importante"),
       link: () => inserirTrecho("[", "](https://)", "Texto do link"),

@@ -161,9 +161,9 @@ def inicializar_banco(config: Configuracoes | None = None) -> None:
                 """,
                 (
                     "Seu Nome",
-                    "Engenharia · Projetos Técnicos e Sistemas",
-                    "Configure seu perfil, projetos, fotos e comprovantes diretamente pelo painel /config.",
-                    "Portfólio Técnico",
+                    "Sua área · Especialidade ou foco dos projetos",
+                    "Apresente brevemente seu trabalho e os projetos reunidos neste portfólio.",
+                    "Portfólio",
                     "#3b82f6",
                     agora_iso(),
                 ),
