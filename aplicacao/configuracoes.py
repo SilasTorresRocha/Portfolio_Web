@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 import secrets
 from dataclasses import dataclass
 from functools import lru_cache
@@ -12,6 +13,8 @@ from dotenv import load_dotenv
 
 RAIZ_PROJETO = Path(__file__).resolve().parent.parent
 load_dotenv(RAIZ_PROJETO / ".env")
+
+REGEX_HORA = re.compile(r"^([01]\d|2[0-3]):([0-5]\d)$")
 
 
 def _ler_booleano(nome: str, padrao: bool = False) -> bool:
@@ -32,6 +35,11 @@ def _ler_inteiro(nome: str, padrao: int, minimo: int = 1) -> int:
         return padrao
 
 
+def _ler_hora(nome: str, padrao: str = "21:00") -> str:
+    valor = os.getenv(nome, padrao).strip()
+    return valor if REGEX_HORA.match(valor) else padrao
+
+
 @dataclass(frozen=True)
 class Configuracoes:
     ambiente: str
@@ -49,6 +57,15 @@ class Configuracoes:
     janela_bloqueio_segundos: int
     nivel_log: str
     url_base: str
+    smtp_ativo: bool
+    smtp_host: str
+    smtp_porta: int
+    smtp_usuario: str
+    smtp_senha: str
+    smtp_destinatario: str
+    relatorio_hora: str
+    relatorio_enviar_se_zerado: bool
+    ips_ignorados: tuple[str, ...]
 
     @property
     def pasta_banco(self) -> Path:
@@ -63,6 +80,10 @@ class Configuracoes:
         return self.pasta_dados / "logs"
 
     @property
+    def pasta_backups_seguranca(self) -> Path:
+        return self.pasta_dados / "backups_pre_restore"
+
+    @property
     def arquivo_banco(self) -> Path:
         return self.pasta_banco / "portfolio.db"
 
@@ -74,6 +95,16 @@ class Configuracoes:
     def eh_producao(self) -> bool:
         return self.ambiente.lower() == "producao"
 
+    @property
+    def smtp_configurado(self) -> bool:
+        return bool(
+            self.smtp_ativo
+            and self.smtp_host
+            and self.smtp_usuario
+            and self.smtp_senha
+            and self.smtp_destinatario
+        )
+
 
 def garantir_pastas_dados(config: Configuracoes) -> None:
     """Garante que a árvore persistente em dados/ exista."""
@@ -82,6 +113,7 @@ def garantir_pastas_dados(config: Configuracoes) -> None:
         config.pasta_banco,
         config.pasta_midias,
         config.pasta_logs,
+        config.pasta_backups_seguranca,
     ):
         pasta.mkdir(parents=True, exist_ok=True)
 
@@ -113,6 +145,21 @@ def obter_configuracoes() -> Configuracoes:
         item.strip() for item in cabecalhos_brutos.split(",") if item.strip()
     )
 
+    smtp_usuario = os.getenv("SMTP_USUARIO", "").strip()
+    smtp_senha = os.getenv("SMTP_SENHA", "").strip()
+    smtp_host = os.getenv("SMTP_HOST", "").strip()
+    if not smtp_host and smtp_usuario:
+        # Padrão conveniente para contas Gmail quando SMTP_HOST não foi informado
+        smtp_host = "smtp.gmail.com"
+    smtp_porta = _ler_inteiro("SMTP_PORTA", 587, minimo=1)
+    smtp_destinatario = os.getenv("SMTP_DESTINATARIO", "").strip() or smtp_usuario
+    smtp_ativo = _ler_booleano("SMTP_ATIVO", True)
+
+    ips_brutos = os.getenv("PORTFOLIO_IPS_IGNORADOS", "127.0.0.1,::1")
+    ips_ignorados = tuple(
+        item.strip() for item in ips_brutos.split(",") if item.strip()
+    )
+
     return Configuracoes(
         ambiente=ambiente,
         host=host,
@@ -131,5 +178,15 @@ def obter_configuracoes() -> Configuracoes:
         ),
         nivel_log=os.getenv("PORTFOLIO_NIVEL_LOG", "INFO").strip().upper() or "INFO",
         url_base=os.getenv("PORTFOLIO_URL_BASE", "").strip().rstrip("/"),
+        smtp_ativo=smtp_ativo,
+        smtp_host=smtp_host,
+        smtp_porta=smtp_porta,
+        smtp_usuario=smtp_usuario,
+        smtp_senha=smtp_senha,
+        smtp_destinatario=smtp_destinatario,
+        relatorio_hora=_ler_hora("PORTFOLIO_RELATORIO_HORA", "21:00"),
+        relatorio_enviar_se_zerado=_ler_booleano(
+            "PORTFOLIO_RELATORIO_ENVIAR_SE_ZERADO", False
+        ),
+        ips_ignorados=ips_ignorados,
     )
-

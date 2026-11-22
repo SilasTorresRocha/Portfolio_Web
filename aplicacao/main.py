@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import time
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -20,6 +21,7 @@ from aplicacao.registros import (
 )
 from aplicacao.rotas.administracao import roteador_admin
 from aplicacao.rotas.publicas import roteador_publico
+from aplicacao.servicos.metricas import agendador_relatorio_diario
 from aplicacao.versao import VERSAO
 
 PASTA_APLICACAO = Path(__file__).resolve().parent
@@ -35,12 +37,13 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     inicializar_banco(cfg)
 
     logger_app.info(
-        "Aplicação iniciada | versao=%s | ambiente=%s | dados=%s | confiar_proxy=%s | cookie_seguro=%s",
+        "Aplicação iniciada | versao=%s | ambiente=%s | dados=%s | proxy=%s | cookie_seguro=%s | smtp=%s",
         VERSAO,
         cfg.ambiente,
         cfg.pasta_dados,
         cfg.confiar_proxy,
         cfg.cookie_seguro,
+        cfg.smtp_configurado,
     )
     if cfg.chave_secreta_gerada:
         logger_app.warning(
@@ -51,9 +54,20 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
             "PORTFOLIO_SENHA_ADMIN não definida no .env; login em /config permanecerá bloqueado."
         )
 
-    yield
+    tarefa_relatorio = asyncio.create_task(
+        agendador_relatorio_diario(cfg),
+        name="agendador-relatorio-diario",
+    )
 
-    logger_app.info("Aplicação finalizada.")
+    try:
+        yield
+    finally:
+        tarefa_relatorio.cancel()
+        try:
+            await tarefa_relatorio
+        except asyncio.CancelledError:
+            pass
+        logger_app.info("Aplicação finalizada.")
 
 
 def criar_aplicacao() -> FastAPI:
@@ -61,7 +75,8 @@ def criar_aplicacao() -> FastAPI:
     app = FastAPI(
         title="Portfólio Técnico",
         version=VERSAO,
-        docs_url="/docs" if not cfg.eh_producao else None,
+        docs_url=None if cfg.eh_producao else "/docs",
+        openapi_url=None if cfg.eh_producao else "/openapi.json",
         redoc_url=None,
         lifespan=lifespan,
     )

@@ -39,8 +39,25 @@ from aplicacao.servicos.admin_projetos import (
     remover_midia_projeto,
     remover_tag_admin,
 )
+from aplicacao.servicos.backup import (
+    ErroBackup,
+    confirmar_restauracao_pendente,
+    gerar_backup_zip,
+    processar_upload_restauracao,
+)
 from aplicacao.servicos.markdown_seguro import renderizar_markdown_seguro
+from aplicacao.servicos.metricas import (
+    enviar_relatorio_diario,
+    obter_estado_sistema,
+    obter_resumo_acessos,
+)
 from aplicacao.servicos.midias import SUPORTE_JXL, ErroUpload
+from aplicacao.servicos.notificacoes import (
+    enviar_email_teste,
+    notificar_forca_bruta_background,
+    obter_config_destino_notificacao,
+    salvar_config_destino_notificacao,
+)
 from aplicacao.versao import VERSAO
 
 roteador_admin = APIRouter(prefix="/config", tags=["administracao"])
@@ -115,7 +132,7 @@ async def pagina_login(request: Request) -> Response:
         name="config_login.html",
         context={
             "perfil": perfil,
-            "titulo_pagina": "Acesso /config",
+            "titulo_pagina": "Acesso restrito",
             "erro": None,
             "senha_configurada": senha_admin_configurada(cfg),
             "csrf_token": gerar_token_csrf("login", cfg),
@@ -142,7 +159,7 @@ async def efetuar_login(
             status_code=status_code,
             context={
                 "perfil": perfil,
-                "titulo_pagina": "Acesso /config",
+                "titulo_pagina": "Acesso restrito",
                 "erro": mensagem,
                 "senha_configurada": senha_admin_configurada(cfg),
                 "csrf_token": gerar_token_csrf("login", cfg),
@@ -160,7 +177,7 @@ async def efetuar_login(
     if not senha_admin_configurada(cfg):
         registrar_auditoria(ip, "LOGIN_BLOQUEADO_SEM_SENHA", "PORTFOLIO_SENHA_ADMIN não definida")
         return _renderizar_erro(
-            "Defina PORTFOLIO_SENHA_ADMIN no arquivo .env antes de acessar o painel.",
+            "Acesso temporariamente indisponível.",
             503,
         )
 
@@ -170,6 +187,13 @@ async def efetuar_login(
             ip,
             "LOGIN_BLOQUEADO_RATE_LIMIT",
             f"bloqueio_restante={segundos_restantes}s",
+        )
+        notificar_forca_bruta_background(
+            ip=ip,
+            tentativas=cfg.max_tentativas_login,
+            bloqueio_segundos=segundos_restantes,
+            user_agent=request.headers.get("user-agent", ""),
+            config=cfg,
         )
         return _renderizar_erro(
             f"Muitas tentativas inválidas. Aguarde {segundos_restantes}s para tentar novamente.",
@@ -183,6 +207,14 @@ async def efetuar_login(
             "LOGIN_RECUSADO",
             f"tentativa={tentativas}/{cfg.max_tentativas_login}",
         )
+        if tentativas >= cfg.max_tentativas_login:
+            notificar_forca_bruta_background(
+                ip=ip,
+                tentativas=tentativas,
+                bloqueio_segundos=cfg.janela_bloqueio_segundos,
+                user_agent=request.headers.get("user-agent", ""),
+                config=cfg,
+            )
         return _renderizar_erro("Senha inválida.", 401)
 
     controlador_tentativas.limpar_ip(ip)
@@ -853,6 +885,250 @@ async def pagina_logs(
         name="config_logs.html",
         context=ctx,
     )
+
+
+# ----------------------------------------------------------------------------
+# Backup, Restauração, Notificações SMTP e Métricas (/config/backup)
+# ----------------------------------------------------------------------------
+
+@roteador_admin.get("/backup", response_class=HTMLResponse)
+async def pagina_backup_e_relatorios(
+    request: Request,
+    ok: str = Query(default=""),
+    erro: str = Query(default=""),
+) -> Response:
+    if not sessao_autenticada(request):
+        return RedirectResponse(url="/config/login", status_code=303)
+
+    cfg = obter_configuracoes()
+    ctx = _contexto_base_admin("backup", ok=ok, erro=erro)
+    ctx.update(
+        {
+            "titulo_pagina": "Backup & Relatórios · /config",
+            "config": cfg,
+            "resumo_banco": obter_resumo_banco(cfg),
+            "metricas_hoje": obter_resumo_acessos(dias=1, config=cfg),
+            "metricas_7d": obter_resumo_acessos(dias=7, config=cfg),
+            "ultimo_relatorio": obter_estado_sistema("ultimo_relatorio_diario", cfg),
+            "destino_notif": obter_config_destino_notificacao(cfg),
+            "confirmacao_pendente": None,
+        }
+    )
+    return request.app.state.templates.TemplateResponse(
+        request=request,
+        name="config_backup.html",
+        context=ctx,
+    )
+
+
+@roteador_admin.post("/backup/baixar")
+async def rota_baixar_backup(
+    request: Request,
+    csrf_token: str = Form(default=""),
+) -> Response:
+    valido, resp_erro = _exigir_sessao_e_csrf(request, csrf_token)
+    if not valido and resp_erro is not None:
+        return resp_erro
+
+    cfg = obter_configuracoes()
+    ip = obter_ip_cliente(request, cfg)
+    try:
+        dados_zip, nome_arquivo, resumo = gerar_backup_zip(cfg)
+    except ErroBackup as err:
+        return _redirecionar_com_aviso("/config/backup", erro=str(err))
+
+    registrar_auditoria(
+        ip,
+        "BACKUP_EXPORTADO",
+        f"arquivo={nome_arquivo} projetos={resumo['projetos']} arquivos={resumo['total_arquivos']}",
+    )
+    return Response(
+        content=dados_zip,
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": f'attachment; filename="{nome_arquivo}"',
+            "X-Content-Type-Options": "nosniff",
+            "Cache-Control": "no-store",
+        },
+    )
+
+
+@roteador_admin.post("/backup/restaurar", response_class=HTMLResponse)
+async def rota_restaurar_backup(
+    request: Request,
+    csrf_token: str = Form(default=""),
+    arquivo: UploadFile = File(...),
+) -> Response:
+    valido, resp_erro = _exigir_sessao_e_csrf(request, csrf_token)
+    if not valido and resp_erro is not None:
+        return resp_erro
+
+    cfg = obter_configuracoes()
+    ip = obter_ip_cliente(request, cfg)
+    conteudo = await arquivo.read()
+
+    try:
+        resultado = processar_upload_restauracao(
+            conteudo,
+            confirmar_chave_diferente=False,
+            config=cfg,
+        )
+    except ErroBackup as err:
+        registrar_auditoria(ip, "BACKUP_RESTORE_RECUSADO", str(err))
+        return _redirecionar_com_aviso("/config/backup", erro=str(err))
+
+    if resultado["status"] == "requer_confirmacao":
+        registrar_auditoria(ip, "BACKUP_HMAC_DIVERGENTE", "Aguardando confirmação manual")
+        ctx = _contexto_base_admin("backup")
+        ctx.update(
+            {
+                "titulo_pagina": "Confirmar Restauração · /config",
+                "config": cfg,
+                "resumo_banco": obter_resumo_banco(cfg),
+                "metricas_hoje": obter_resumo_acessos(dias=1, config=cfg),
+                "metricas_7d": obter_resumo_acessos(dias=7, config=cfg),
+                "ultimo_relatorio": obter_estado_sistema("ultimo_relatorio_diario", cfg),
+                "destino_notif": obter_config_destino_notificacao(cfg),
+                "confirmacao_pendente": resultado,
+            }
+        )
+        return request.app.state.templates.TemplateResponse(
+            request=request,
+            name="config_backup.html",
+            context=ctx,
+        )
+
+    resumo = resultado["manifesto"]["resumo"]
+    registrar_auditoria(
+        ip,
+        "BACKUP_RESTAURADO",
+        f"hmac_valido=True projetos={resumo['projetos']} arquivos={resumo['total_arquivos']}",
+    )
+    return _redirecionar_com_aviso(
+        "/config/backup",
+        ok=(
+            f"Backup restaurado com assinatura HMAC válida! "
+            f"{resumo['projetos']} projeto(s) e {resumo['total_arquivos']} arquivo(s) recuperados."
+        ),
+    )
+
+
+@roteador_admin.post("/backup/confirmar-restauracao")
+async def rota_confirmar_restauracao(
+    request: Request,
+    csrf_token: str = Form(default=""),
+    token: str = Form(default=""),
+    confirma_chave: str | None = Form(default=None),
+) -> Response:
+    valido, resp_erro = _exigir_sessao_e_csrf(request, csrf_token)
+    if not valido and resp_erro is not None:
+        return resp_erro
+
+    if confirma_chave != "1":
+        return _redirecionar_com_aviso(
+            "/config/backup",
+            erro="Marque a caixa de confirmação para restaurar um backup com chave diferente.",
+        )
+
+    cfg = obter_configuracoes()
+    ip = obter_ip_cliente(request, cfg)
+    try:
+        resultado = confirmar_restauracao_pendente(token, cfg)
+    except ErroBackup as err:
+        return _redirecionar_com_aviso("/config/backup", erro=str(err))
+
+    resumo = resultado["manifesto"]["resumo"]
+    registrar_auditoria(
+        ip,
+        "BACKUP_RESTAURADO_CHAVE_DIFERENTE",
+        f"projetos={resumo['projetos']} arquivos={resumo['total_arquivos']}",
+    )
+    return _redirecionar_com_aviso(
+        "/config/backup",
+        ok=(
+            f"Backup restaurado após confirmação manual (SHA-256 e SQLite validados). "
+            f"{resumo['projetos']} projeto(s) recuperados."
+        ),
+    )
+
+
+@roteador_admin.post("/notificacoes/destino")
+async def rota_salvar_destino_notificacoes(
+    request: Request,
+    csrf_token: str = Form(default=""),
+    modo_destino: str = Form(default="smtp"),
+    email_personalizado: str = Form(default=""),
+) -> Response:
+    valido, resp_erro = _exigir_sessao_e_csrf(request, csrf_token)
+    if not valido and resp_erro is not None:
+        return resp_erro
+
+    cfg = obter_configuracoes()
+    ip = obter_ip_cliente(request, cfg)
+    try:
+        destino = salvar_config_destino_notificacao(
+            modo=modo_destino,
+            email_personalizado=email_personalizado,
+            config=cfg,
+        )
+    except ValueError as err:
+        return _redirecionar_com_aviso("/config/backup", erro=str(err), ancora="notificacoes")
+
+    registrar_auditoria(
+        ip,
+        "DESTINO_NOTIFICACOES_ATUALIZADO",
+        f"modo={destino['modo']} destinatario={destino['efetivo']}",
+    )
+    return _redirecionar_com_aviso(
+        "/config/backup",
+        ok=f"Destinatário atualizado para {destino['efetivo']} ({destino['origem']}).",
+        ancora="notificacoes",
+    )
+
+
+@roteador_admin.post("/notificacoes/teste")
+async def rota_testar_smtp(
+    request: Request,
+    csrf_token: str = Form(default=""),
+) -> Response:
+    valido, resp_erro = _exigir_sessao_e_csrf(request, csrf_token)
+    if not valido and resp_erro is not None:
+        return resp_erro
+
+    cfg = obter_configuracoes()
+    ip = obter_ip_cliente(request, cfg)
+    destino = obter_config_destino_notificacao(cfg)["efetivo"]
+    ok, detalhe = enviar_email_teste(cfg)
+    if ok:
+        registrar_auditoria(ip, "SMTP_TESTE_OK", f"destinatario={destino}")
+        return _redirecionar_com_aviso(
+            "/config/backup",
+            ok=f"E-mail de teste enviado para {destino}.",
+            ancora="notificacoes",
+        )
+    registrar_auditoria(ip, "SMTP_TESTE_FALHA", detalhe)
+    return _redirecionar_com_aviso("/config/backup", erro=detalhe, ancora="notificacoes")
+
+
+@roteador_admin.post("/notificacoes/relatorio")
+async def rota_enviar_relatorio_agora(
+    request: Request,
+    csrf_token: str = Form(default=""),
+) -> Response:
+    valido, resp_erro = _exigir_sessao_e_csrf(request, csrf_token)
+    if not valido and resp_erro is not None:
+        return resp_erro
+
+    cfg = obter_configuracoes()
+    destino = obter_config_destino_notificacao(cfg)["efetivo"]
+    ok, detalhe = enviar_relatorio_diario(forcar=True, config=cfg)
+    if ok:
+        return _redirecionar_com_aviso(
+            "/config/backup",
+            ok=f"Relatório de acessos enviado para {destino}.",
+            ancora="notificacoes",
+        )
+    return _redirecionar_com_aviso("/config/backup", erro=detalhe, ancora="notificacoes")
 
 
 # ----------------------------------------------------------------------------

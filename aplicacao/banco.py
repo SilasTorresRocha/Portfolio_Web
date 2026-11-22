@@ -86,6 +86,25 @@ CREATE TABLE IF NOT EXISTS links_externos (
     ordem INTEGER NOT NULL DEFAULT 0
 );
 
+CREATE TABLE IF NOT EXISTS acessos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    criado_em TEXT NOT NULL,
+    data_local TEXT NOT NULL,
+    tipo TEXT NOT NULL,
+    caminho TEXT NOT NULL,
+    referencia TEXT NOT NULL DEFAULT '',
+    ip TEXT NOT NULL DEFAULT '',
+    origem TEXT NOT NULL DEFAULT 'direto',
+    eh_bot INTEGER NOT NULL DEFAULT 0,
+    user_agent TEXT NOT NULL DEFAULT ''
+);
+
+CREATE TABLE IF NOT EXISTS estado_sistema (
+    chave TEXT PRIMARY KEY,
+    valor TEXT NOT NULL,
+    atualizado_em TEXT NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_projetos_publicado_ordem
     ON projetos (publicado, destaque DESC, ordem ASC, criado_em DESC);
 CREATE INDEX IF NOT EXISTS idx_midias_projeto
@@ -94,6 +113,8 @@ CREATE INDEX IF NOT EXISTS idx_anexos_projeto
     ON anexos (projeto_id, ordem ASC);
 CREATE INDEX IF NOT EXISTS idx_links_projeto
     ON links_externos (projeto_id, ordem ASC);
+CREATE INDEX IF NOT EXISTS idx_acessos_data_tipo
+    ON acessos (data_local, eh_bot, tipo);
 """
 
 

@@ -1,11 +1,16 @@
 {% extends "base.html" %}
 
+{% block meta_robots %}
+<meta name="robots" content="noindex, nofollow">
+{% endblock %}
+
 {% block conteudo %}
 <div class="admin-topo">
   <nav class="admin-abas" aria-label="Navegação do painel administrativo">
     <a class="admin-aba {% if aba_ativa == 'projetos' %}ativa{% endif %}" href="/config">Projetos</a>
     <a class="admin-aba {% if aba_ativa == 'novo' %}ativa{% endif %}" href="/config/projetos/novo">+ Novo projeto</a>
     <a class="admin-aba {% if aba_ativa == 'perfil' %}ativa{% endif %}" href="/config/perfil">Perfil &amp; Aparência</a>
+    <a class="admin-aba {% if aba_ativa == 'backup' %}ativa{% endif %}" href="/config/backup">Backup &amp; Relatórios</a>
     <a class="admin-aba {% if aba_ativa == 'logs' %}ativa{% endif %}" href="/config/logs">Logs &amp; Sistema</a>
   </nav>
 

@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{ titulo_pagina or "Portfólio Técnico" }}</title>
+  {% block meta_robots %}{% endblock %}
   {% if og_descricao %}
   <meta name="description" content="{{ og_descricao }}">
   {% endif %}
@@ -34,7 +35,6 @@
       </a>
       <nav class="navegacao" aria-label="Navegação principal">
         <a class="link-nav" href="/">projetos</a>
-        <a class="link-nav" href="/config">/config</a>
       </nav>
     </div>
   </header>
@@ -48,7 +48,7 @@
   <footer class="rodape">
     <div class="container rodape-interno">
       <span>{{ perfil.nome if perfil and perfil.nome else "Portfólio Técnico" }}</span>
-      <span><a href="/config">administração</a></span>
+      <span>{{ perfil.titulo_site if perfil and perfil.titulo_site else "" }}</span>
     </div>
   </footer>
 

@@ -22,6 +22,7 @@ from aplicacao.servicos.catalogo import (
     obter_iniciais_perfil,
     obter_projeto_por_slug,
 )
+from aplicacao.servicos.metricas import registrar_acesso
 from aplicacao.versao import VERSAO
 
 roteador_publico = APIRouter()
@@ -41,6 +42,7 @@ async def pagina_inicial(
     tag: str = Query(default="", max_length=80),
 ) -> HTMLResponse:
     cfg = obter_configuracoes()
+    registrar_acesso(request, tipo="vitrine", referencia="/", config=cfg)
     perfil = obter_perfil(cfg)
     tags = listar_tags_publicas(cfg)
     projetos = listar_projetos_publicos(busca=q, tag_slug=tag, config=cfg)
@@ -93,6 +95,8 @@ async def pagina_projeto(request: Request, slug: str) -> HTMLResponse:
                 "mensagem": "O projeto solicitado não existe ou ainda não está publicado.",
             },
         )
+
+    registrar_acesso(request, tipo="projeto", referencia=projeto["slug"], config=cfg)
 
     url_base = _url_base_publica(request)
     capa = projeto.get("capa")
@@ -158,6 +162,8 @@ def _servir_anexo_pdf(request: Request, anexo_id: int, disposicao: str) -> FileR
         raise HTTPException(status_code=404, detail="Arquivo PDF indisponível.")
 
     nome_download = sanitizar_nome_download(anexo.get("nome_arquivo_original", "documento.pdf"))
+    tipo_metrica = "anexo_ver" if disposicao == "inline" else "anexo_baixar"
+    registrar_acesso(request, tipo=tipo_metrica, referencia=anexo.get("titulo") or nome_download, config=cfg)
     return FileResponse(
         path=arquivo,
         media_type="application/pdf",
@@ -180,7 +186,7 @@ async def baixar_anexo(request: Request, anexo_id: int) -> FileResponse:
 
 
 @roteador_publico.get("/curriculo")
-async def visualizar_curriculo() -> FileResponse:
+async def visualizar_curriculo(request: Request) -> FileResponse:
     cfg = obter_configuracoes()
     perfil = obter_perfil(cfg)
     caminho_curriculo = perfil.get("curriculo_caminho")
@@ -195,6 +201,7 @@ async def visualizar_curriculo() -> FileResponse:
     if arquivo is None:
         raise HTTPException(status_code=404, detail="Arquivo de currículo não encontrado.")
 
+    registrar_acesso(request, tipo="curriculo", referencia="Currículo PDF", config=cfg)
     return FileResponse(
         path=arquivo,
         media_type="application/pdf",
@@ -221,11 +228,7 @@ async def verificar_saude() -> JSONResponse:
             },
         )
     except Exception as erro:
-        return JSONResponse(
-            status_code=503,
-            content={
-                "status": "erro",
-                "banco": "indisponivel",
-                "detalhe": str(erro),
-            },
-        )
+        conteudo = {"status": "erro", "banco": "indisponivel"}
+        if not cfg.eh_producao:
+            conteudo["detalhe"] = str(erro)
+        return JSONResponse(status_code=503, content=conteudo)

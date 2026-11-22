@@ -1,27 +1,21 @@
 {% extends "base.html" %}
 
+{% block meta_robots %}
+<meta name="robots" content="noindex, nofollow">
+{% endblock %}
+
 {% block conteudo %}
 <section class="bloco caixa-login">
-  <p class="rotulo-secao">ADMINISTRAÇÃO</p>
-  <h1 class="titulo-pagina">Acesso ao /config</h1>
-  <p class="subtitulo-pagina" style="margin-bottom: 20px;">
-    Informe a senha configurada em <span class="mono">PORTFOLIO_SENHA_ADMIN</span> no arquivo <span class="mono">.env</span>.
-  </p>
-
-  {% if not senha_configurada %}
-  <div class="alerta alerta-aviso">
-    A variável <span class="mono">PORTFOLIO_SENHA_ADMIN</span> está vazia no <span class="mono">.env</span>. Configure uma senha e reinicie o servidor.
-  </div>
-  {% endif %}
+  <h1 class="titulo-pagina" style="font-size: 21px; margin-bottom: 18px;">Acesso restrito</h1>
 
   {% if erro %}
-  <div class="alerta alerta-erro">{{ erro }}</div>
+  <div class="alerta alerta-erro" role="alert">{{ erro }}</div>
   {% endif %}
 
   <form method="post" action="/config/login">
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
     <div class="campo">
-      <label for="senha">Senha administrativa</label>
+      <label for="senha">Senha</label>
       <input
         id="senha"
         name="senha"
@@ -30,16 +24,14 @@
         autocomplete="current-password"
         required
         autofocus
-        {% if not senha_configurada %}disabled{% endif %}
       >
     </div>
 
     <div class="acoes-linha" style="margin-top: 16px;">
-      <button type="submit" class="botao botao-primario" style="width: 100%;" {% if not senha_configurada %}disabled{% endif %}>
-        Entrar no painel
+      <button type="submit" class="botao botao-primario" style="width: 100%;">
+        Entrar
       </button>
     </div>
   </form>
 </section>
 {% endblock %}
-

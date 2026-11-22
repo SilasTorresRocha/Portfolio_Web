@@ -1,0 +1,302 @@
+{% extends "config_base.html" %}
+
+{% block conteudo_admin %}
+<div class="cabecalho-secao" style="margin-bottom: 18px;">
+  <div>
+    <p class="rotulo-secao">CONTINUIDADE, SEGURANÇA E MÉTRICAS</p>
+    <h1 class="titulo-pagina" style="font-size: 22px;">Backup, Restauração e Relatórios</h1>
+    <p class="subtitulo-pagina">
+      Exporte um snapshot completo com integridade SHA-256 + assinatura HMAC, restaure em segundos e acompanhe acessos externos.
+    </p>
+  </div>
+</div>
+
+{% if confirmacao_pendente %}
+<section class="bloco" style="border-color: rgba(234, 179, 8, 0.55); margin-bottom: 22px;">
+  <p class="rotulo-secao" style="color: #fde047;">CONFIRMAÇÃO NECESSÁRIA · ASSINATURA HMAC DIVERGENTE</p>
+  <h2 style="margin: 0 0 8px; font-size: 17px;">Backup íntegro, mas gerado com outra PORTFOLIO_CHAVE_SECRETA</h2>
+  <p class="subtitulo-pagina" style="margin-bottom: 14px;">
+    Todos os hashes <strong>SHA-256</strong> dos arquivos e o <strong>PRAGMA integrity_check</strong> do SQLite passaram sem erros.
+    A assinatura HMAC não coincide com a chave atual do <span class="mono">.env</span> — isso é normal ao migrar de servidor ou trocar a chave.
+  </p>
+
+  <dl class="lista-kv" style="margin-bottom: 16px;">
+    <div class="item-kv">
+      <dt>Gerado em</dt>
+      <dd>{{ confirmacao_pendente.manifesto.criado_em }}</dd>
+    </div>
+    <div class="item-kv">
+      <dt>Versão do backup</dt>
+      <dd>v{{ confirmacao_pendente.manifesto.versao_app }}</dd>
+    </div>
+    <div class="item-kv">
+      <dt>Conteúdo validado</dt>
+      <dd>{{ confirmacao_pendente.manifesto.resumo.projetos }} projeto(s) · {{ confirmacao_pendente.manifesto.resumo.total_arquivos }} arquivo(s)</dd>
+    </div>
+  </dl>
+
+  <form method="post" action="/config/backup/confirmar-restauracao">
+    <input type="hidden" name="csrf_token" value="{{ csrf_admin }}">
+    <input type="hidden" name="token" value="{{ confirmacao_pendente.token }}">
+
+    <div class="linha-checks" style="margin-bottom: 14px;">
+      <label class="check-label">
+        <input type="checkbox" name="confirma_chave" value="1" required>
+        <span>Confirmo que este backup é legítimo e desejo restaurar mesmo com outra chave secreta.</span>
+      </label>
+    </div>
+
+    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+      <button type="submit" class="botao botao-primario">Confirmar e restaurar agora</button>
+      <a class="botao botao-sutil" href="/config/backup">Cancelar</a>
+    </div>
+  </form>
+</section>
+{% endif %}
+
+<!-- ========================================================================
+     BACKUP E RESTAURAÇÃO (.ZIP)
+     ======================================================================== -->
+<div class="grade-campos-2">
+  <section class="bloco">
+    <p class="rotulo-secao">01 · EXPORTAR BACKUP (.ZIP)</p>
+    <h2 style="margin: 0 0 8px; font-size: 16px;">Cópia completa de dados e mídias</h2>
+    <p class="subtitulo-pagina" style="margin-bottom: 16px;">
+      Gera um arquivo <span class="mono">.zip</span> consistente usando backup online do SQLite + todas as imagens WebP e PDFs.
+      Inclui <span class="mono">manifesto.json</span> com SHA-256 por arquivo e assinatura <span class="mono">HMAC-SHA256</span>.
+      O arquivo <span class="mono">.env</span> não é incluído por segurança.
+    </p>
+
+    <dl class="lista-kv" style="grid-template-columns: 1fr; margin-bottom: 16px;">
+      <div class="item-kv">
+        <dt>Projetos no banco</dt>
+        <dd>{{ resumo_banco.total_projetos }} ({{ resumo_banco.projetos_publicados }} publicados)</dd>
+      </div>
+      <div class="item-kv">
+        <dt>Mídias &amp; Anexos PDF</dt>
+        <dd>{{ resumo_banco.total_midias }} imagem(ns) · {{ resumo_banco.total_anexos }} PDF(s)</dd>
+      </div>
+    </dl>
+
+    <form method="post" action="/config/backup/baixar">
+      <input type="hidden" name="csrf_token" value="{{ csrf_admin }}">
+      <button type="submit" class="botao botao-primario">Baixar backup completo (.zip)</button>
+    </form>
+  </section>
+
+  <section class="bloco">
+    <p class="rotulo-secao">02 · RESTAURAR BACKUP (.ZIP)</p>
+    <h2 style="margin: 0 0 8px; font-size: 16px;">Recuperação validada em 1 passo</h2>
+    <p class="subtitulo-pagina" style="margin-bottom: 16px;">
+      Antes de sobrescrever qualquer dado, o sistema valida proteção anti-Zip Slip/Zip Bomb, todos os hashes <strong>SHA-256</strong>,
+      a integridade do SQLite e salva um snapshot automático em <span class="mono">dados/backups_pre_restore/</span>.
+    </p>
+
+    <form
+      method="post"
+      action="/config/backup/restaurar"
+      enctype="multipart/form-data"
+      onsubmit="return confirm('Restaurar este backup substituirá os projetos, fotos e PDFs atuais (um snapshot de segurança será salvo antes). Continuar?');"
+    >
+      <input type="hidden" name="csrf_token" value="{{ csrf_admin }}">
+      <div class="campo">
+        <label for="arquivo-backup">Arquivo .zip gerado pelo Portfólio (até 250 MB)</label>
+        <input
+          id="arquivo-backup"
+          name="arquivo"
+          type="file"
+          class="entrada"
+          accept=".zip,application/zip"
+          required
+        >
+      </div>
+      <button type="submit" class="botao">Validar e restaurar backup</button>
+    </form>
+  </section>
+</div>
+
+<!-- ========================================================================
+     NOTIFICAÇÕES SMTP E RELATÓRIO DIÁRIO
+     ======================================================================== -->
+<section id="notificacoes" class="bloco secao-admin-espaco">
+  <div class="cabecalho-secao" style="margin-bottom: 14px;">
+    <div>
+      <p class="rotulo-secao">03 · NOTIFICAÇÕES SMTP E RELATÓRIO DIÁRIO</p>
+      <h2 style="margin: 0; font-size: 16px;">Alertas de força bruta e resumo diário por e-mail</h2>
+    </div>
+    {% if config.smtp_configurado %}
+    <span class="selo selo-ok">SMTP ATIVO</span>
+    {% else %}
+    <span class="selo selo-aviso">SMTP NÃO CONFIGURADO</span>
+    {% endif %}
+  </div>
+
+  <dl class="lista-kv" style="margin-bottom: 18px;">
+    <div class="item-kv">
+      <dt>Conta remetente (SMTP)</dt>
+      <dd>{{ config.smtp_usuario or "—" }}</dd>
+    </div>
+    <div class="item-kv">
+      <dt>Destinatário ativo</dt>
+      <dd>{{ destino_notif.efetivo or "—" }}</dd>
+    </div>
+    <div class="item-kv">
+      <dt>Origem do destinatário</dt>
+      <dd>{{ destino_notif.origem }}</dd>
+    </div>
+    <div class="item-kv">
+      <dt>Horário do relatório diário</dt>
+      <dd>{{ config.relatorio_hora }} (fuso TZ)</dd>
+    </div>
+    <div class="item-kv">
+      <dt>Último envio automático</dt>
+      <dd>{{ ultimo_relatorio or "ainda não enviado" }}</dd>
+    </div>
+    <div class="item-kv">
+      <dt>IPs ignorados nas métricas</dt>
+      <dd>{{ config.ips_ignorados | join(", ") if config.ips_ignorados else "nenhum" }}</dd>
+    </div>
+  </dl>
+
+  <form method="post" action="/config/notificacoes/destino" style="margin-bottom: 18px; padding: 14px; border: 1px solid var(--borda); border-radius: var(--raio); background-color: var(--fundo);">
+    <input type="hidden" name="csrf_token" value="{{ csrf_admin }}">
+    <p class="painel-lateral-titulo" style="margin-bottom: 10px;">Quem deve receber alertas e relatórios?</p>
+
+    <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px;">
+      <label class="check-label">
+        <input type="radio" name="modo_destino" value="perfil" {% if destino_notif.modo == "perfil" %}checked{% endif %}>
+        <span>
+          Usar <strong>E-mail de contato</strong> do Perfil
+          <span class="mono" style="font-size: 11.5px; color: var(--texto-sutil);">
+            ({{ destino_notif.email_perfil or "ainda não preenchido na aba Perfil" }})
+          </span>
+        </span>
+      </label>
+
+      <label class="check-label">
+        <input type="radio" name="modo_destino" value="smtp" {% if destino_notif.modo == "smtp" %}checked{% endif %}>
+        <span>
+          Usar o mesmo e-mail da conta SMTP (<span class="mono">.env</span>)
+          <span class="mono" style="font-size: 11.5px; color: var(--texto-sutil);">
+            ({{ destino_notif.email_smtp or "não definido" }})
+          </span>
+        </span>
+      </label>
+
+      <label class="check-label">
+        <input type="radio" name="modo_destino" value="personalizado" {% if destino_notif.modo == "personalizado" %}checked{% endif %}>
+        <span>Definir um e-mail específico para alertas e relatórios:</span>
+      </label>
+
+      <div style="padding-left: 24px; max-width: 380px;">
+        <input
+          name="email_personalizado"
+          type="email"
+          class="entrada mono"
+          value="{{ destino_notif.email_personalizado or '' }}"
+          placeholder="relatorios@seudominio.com"
+        >
+      </div>
+    </div>
+
+    <button type="submit" class="botao botao-pequeno">Salvar destinatário</button>
+  </form>
+
+  <div class="acoes-linha" style="margin-top: 0;">
+    <form method="post" action="/config/notificacoes/teste" style="margin: 0;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_admin }}">
+      <button type="submit" class="botao" {% if not config.smtp_configurado %}disabled{% endif %}>
+        Enviar e-mail de teste
+      </button>
+    </form>
+
+    <form method="post" action="/config/notificacoes/relatorio" style="margin: 0;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_admin }}">
+      <button type="submit" class="botao botao-primario" {% if not config.smtp_configurado %}disabled{% endif %}>
+        Enviar relatório de hoje agora
+      </button>
+    </form>
+  </div>
+</section>
+
+<!-- ========================================================================
+     RESUMO DE ACESSOS EXTERNOS (HOJE E ÚLTIMOS 7 DIAS)
+     ======================================================================== -->
+<section class="bloco secao-admin-espaco">
+  <p class="rotulo-secao">04 · MÉTRICAS DE ACESSO EXTERNO (ÚLTIMOS 7 DIAS)</p>
+
+  <div class="grade-metricas" style="margin-top: 12px; margin-bottom: 18px;">
+    <div class="cartao-metrica">
+      <div class="metrica-rotulo">Acessos humanos (hoje)</div>
+      <div class="metrica-valor">{{ metricas_hoje.visitas_humanas }}</div>
+      <div class="metrica-detalhe">{{ metricas_hoje.visitantes_unicos }} IP(s) únicos</div>
+    </div>
+    <div class="cartao-metrica">
+      <div class="metrica-rotulo">Acessos humanos (7 dias)</div>
+      <div class="metrica-valor">{{ metricas_7d.visitas_humanas }}</div>
+      <div class="metrica-detalhe">{{ metricas_7d.visitantes_unicos }} IP(s) únicos</div>
+    </div>
+    <div class="cartao-metrica">
+      <div class="metrica-rotulo">Bots separados (7 dias)</div>
+      <div class="metrica-valor">{{ metricas_7d.acessos_bots }}</div>
+      <div class="metrica-detalhe">não somam nos acessos humanos</div>
+    </div>
+    <div class="cartao-metrica">
+      <div class="metrica-rotulo">Alertas /config (7 dias)</div>
+      <div class="metrica-valor">{{ metricas_7d.alertas_login.bloqueados }}</div>
+      <div class="metrica-detalhe">{{ metricas_7d.alertas_login.recusados }} tentativa(s) falha(s)</div>
+    </div>
+  </div>
+
+  <div class="grade-campos-3">
+    <div>
+      <p class="painel-lateral-titulo">Projetos mais vistos (7d)</p>
+      {% if metricas_7d.projetos_vistos %}
+      <dl class="lista-kv" style="grid-template-columns: 1fr;">
+        {% for p in metricas_7d.projetos_vistos %}
+        <div class="item-kv">
+          <dt>/projeto/{{ p.slug }}</dt>
+          <dd>{{ p.total }}</dd>
+        </div>
+        {% endfor %}
+      </dl>
+      {% else %}
+      <p class="subtitulo-pagina">Sem acessos externos registrados ainda.</p>
+      {% endif %}
+    </div>
+
+    <div>
+      <p class="painel-lateral-titulo">PDFs &amp; Currículo abertos (7d)</p>
+      {% if metricas_7d.documentos_vistos %}
+      <dl class="lista-kv" style="grid-template-columns: 1fr;">
+        {% for d in metricas_7d.documentos_vistos %}
+        <div class="item-kv">
+          <dt>{{ d.titulo }}</dt>
+          <dd>{{ d.total }}</dd>
+        </div>
+        {% endfor %}
+      </dl>
+      {% else %}
+      <p class="subtitulo-pagina">Nenhum documento aberto externamente ainda.</p>
+      {% endif %}
+    </div>
+
+    <div>
+      <p class="painel-lateral-titulo">Origens / Referer (7d)</p>
+      {% if metricas_7d.origens %}
+      <dl class="lista-kv" style="grid-template-columns: 1fr;">
+        {% for o in metricas_7d.origens %}
+        <div class="item-kv">
+          <dt>{{ o.origem }}</dt>
+          <dd>{{ o.total }}</dd>
+        </div>
+        {% endfor %}
+      </dl>
+      {% else %}
+      <p class="subtitulo-pagina">Sem origens registradas ainda.</p>
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% endblock %}
+
