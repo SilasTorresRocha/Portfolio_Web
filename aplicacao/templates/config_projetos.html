@@ -1,0 +1,129 @@
+{% extends "config_base.html" %}
+
+{% block conteudo_admin %}
+<section class="grade-metricas">
+  <div class="cartao-metrica">
+    <div class="metrica-rotulo">Projetos</div>
+    <div class="metrica-valor">{{ resumo_banco.total_projetos }}</div>
+    <div class="metrica-detalhe">{{ resumo_banco.projetos_publicados }} publicados</div>
+  </div>
+  <div class="cartao-metrica">
+    <div class="metrica-rotulo">Galeria</div>
+    <div class="metrica-valor">{{ resumo_banco.total_midias }}</div>
+    <div class="metrica-detalhe">imagens em WebP</div>
+  </div>
+  <div class="cartao-metrica">
+    <div class="metrica-rotulo">Comprovantes</div>
+    <div class="metrica-valor">{{ resumo_banco.total_anexos }}</div>
+    <div class="metrica-detalhe">documentos PDF</div>
+  </div>
+  <div class="cartao-metrica">
+    <div class="metrica-rotulo">Tags</div>
+    <div class="metrica-valor">{{ resumo_banco.total_tags }}</div>
+    <div class="metrica-detalhe">filtros cadastrados</div>
+  </div>
+</section>
+
+<div class="cabecalho-secao" style="margin-bottom: 16px;">
+  <div>
+    <p class="rotulo-secao">GERENCIAMENTO</p>
+    <h1 class="titulo-pagina" style="font-size: 22px;">Projetos cadastrados</h1>
+  </div>
+  <a class="botao botao-primario" href="/config/projetos/novo">+ Novo projeto</a>
+</div>
+
+{% if projetos %}
+<section class="lista-admin-projetos">
+  {% for p in projetos %}
+  <article class="linha-admin-projeto">
+    <div class="thumb-admin">
+      {% if p.capa_miniatura %}
+      <img src="/midias/{{ p.capa_miniatura }}" alt="{{ p.titulo }}" loading="lazy">
+      {% else %}
+      <span>SEM CAPA</span>
+      {% endif %}
+    </div>
+
+    <div class="admin-projeto-info">
+      <div class="admin-projeto-topo">
+        <h2 class="admin-projeto-titulo">{{ p.titulo }}</h2>
+        {% if p.publicado %}
+        <span class="selo selo-ok">PUBLICADO</span>
+        {% else %}
+        <span class="selo selo-aviso">RASCUNHO</span>
+        {% endif %}
+        {% if p.destaque %}
+        <span class="selo selo-destaque">DESTAQUE</span>
+        {% endif %}
+        {% if p.status %}
+        <span class="selo">{{ p.status }}</span>
+        {% endif %}
+      </div>
+
+      <div class="admin-projeto-sub">
+        <span>/projeto/{{ p.slug }}</span>
+        <span>ordem: {{ p.ordem }}</span>
+        <span>{{ p.total_midias }} foto(s)</span>
+        <span>{{ p.total_anexos }} PDF</span>
+        <span>checklist: {{ p.checklist.preenchidos }}/{{ p.checklist.total }}</span>
+      </div>
+    </div>
+
+    <div class="admin-projeto-acoes">
+      <a class="botao botao-pequeno botao-primario" href="/config/projetos/{{ p.id }}/editar">Editar</a>
+      <a class="botao botao-pequeno botao-sutil" href="/projeto/{{ p.slug }}" target="_blank" rel="noopener noreferrer">Ver</a>
+      <form method="post" action="/config/projetos/{{ p.id }}/publicacao" style="margin: 0;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_admin }}">
+        <button type="submit" class="botao botao-pequeno">
+          {{ "Ocultar" if p.publicado else "Publicar" }}
+        </button>
+      </form>
+      <form
+        method="post"
+        action="/config/projetos/{{ p.id }}/excluir"
+        style="margin: 0;"
+        onsubmit="return confirm('Excluir definitivamente o projeto &quot;{{ p.titulo }}&quot; e todas as suas fotos e PDFs?');"
+      >
+        <input type="hidden" name="csrf_token" value="{{ csrf_admin }}">
+        <button type="submit" class="botao botao-pequeno botao-perigo">Excluir</button>
+      </form>
+    </div>
+  </article>
+  {% endfor %}
+</section>
+{% else %}
+<section class="estado-vazio">
+  <h2>Nenhum projeto cadastrado</h2>
+  <p>Crie seu primeiro projeto para começar a montar a vitrine com galeria de fotos, contexto rápido e documentos PDF.</p>
+  <a class="botao botao-primario" href="/config/projetos/novo">+ Criar primeiro projeto</a>
+</section>
+{% endif %}
+
+{% if tags %}
+<section class="bloco secao-admin-espaco">
+  <p class="rotulo-secao">TAGS EXISTENTES</p>
+  <div class="barra-tags" style="margin-top: 10px;">
+    {% for t in tags %}
+    <div class="pilula-tag" style="cursor: default;">
+      <span>{{ t.nome }}</span>
+      <span class="pilula-contagem">{{ t.total_projetos }}</span>
+      <form
+        method="post"
+        action="/config/tags/{{ t.id }}/excluir"
+        style="margin: 0; display: inline;"
+        onsubmit="return confirm('Remover a tag &quot;{{ t.nome }}&quot;?');"
+      >
+        <input type="hidden" name="csrf_token" value="{{ csrf_admin }}">
+        <button
+          type="submit"
+          title="Remover tag"
+          style="background: none; border: none; color: var(--texto-sutil); cursor: pointer; padding: 0 2px; font-family: var(--fonte-mono);"
+        >&times;</button>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+{% endblock %}
+

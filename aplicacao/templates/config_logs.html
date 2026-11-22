@@ -1,0 +1,65 @@
+{% extends "config_base.html" %}
+
+{% block conteudo_admin %}
+<section class="bloco" style="margin-bottom: 20px;">
+  <p class="rotulo-secao">DIAGNÓSTICO DO SISTEMA</p>
+  <dl class="lista-kv">
+    <div class="item-kv">
+      <dt>Versão</dt>
+      <dd><span class="selo selo-destaque">v{{ versao }}</span></dd>
+    </div>
+    <div class="item-kv">
+      <dt>Ambiente</dt>
+      <dd><span class="selo selo-ok">{{ config.ambiente }}</span></dd>
+    </div>
+    <div class="item-kv">
+      <dt>Banco SQLite</dt>
+      <dd>{{ resumo_banco.journal_mode }} · {{ resumo_banco.tamanho_kb }} KB</dd>
+    </div>
+    <div class="item-kv">
+      <dt>Suporte JPEG XL (.jxl)</dt>
+      <dd>{{ "ativo (converte p/ WebP)" if suporte_jxl else "indisponível fora do Docker" }}</dd>
+    </div>
+    <div class="item-kv">
+      <dt>Pasta persistente</dt>
+      <dd>{{ config.pasta_dados }}</dd>
+    </div>
+    <div class="item-kv">
+      <dt>Confiar em proxy (Caddy/CF)</dt>
+      <dd>{{ "ativo" if config.confiar_proxy else "desativado" }}</dd>
+    </div>
+    <div class="item-kv">
+      <dt>Cookie HTTPS (Secure)</dt>
+      <dd>{{ "ativo" if config.cookie_seguro else "desativado (local)" }}</dd>
+    </div>
+    <div class="item-kv">
+      <dt>Limite de tentativas login</dt>
+      <dd>{{ config.max_tentativas_login }} falhas / {{ config.janela_bloqueio_segundos }}s</dd>
+    </div>
+  </dl>
+</section>
+
+<section class="bloco">
+  <div class="cabecalho-secao" style="margin-bottom: 14px;">
+    <div>
+      <p class="rotulo-secao">REGISTROS EM DADOS/LOGS</p>
+      <h2 style="margin: 0; font-size: 16px; font-weight: 600;">Últimas entradas (mais recentes no topo)</h2>
+    </div>
+    <div class="abas-log" style="margin-bottom: 0;">
+      <a class="aba-log {% if tipo_log == 'auditoria' %}ativa{% endif %}" href="/config/logs?aba_log=auditoria">auditoria.log</a>
+      <a class="aba-log {% if tipo_log == 'aplicacao' %}ativa{% endif %}" href="/config/logs?aba_log=aplicacao">aplicacao.log</a>
+    </div>
+  </div>
+
+  <div class="terminal-logs" role="log" aria-label="Registros do sistema">
+    {% if linhas_log %}
+      {% for linha in linhas_log %}
+      <div class="linha-log">{{ linha }}</div>
+      {% endfor %}
+    {% else %}
+      <div class="linha-log">Nenhum registro encontrado ainda neste arquivo.</div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}
+

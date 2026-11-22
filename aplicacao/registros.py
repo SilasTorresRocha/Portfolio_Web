@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import logging
+import os
 from collections import deque
+from datetime import datetime, timedelta, timezone
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import Request
 
@@ -16,7 +19,31 @@ NOME_LOGGER_AUDITORIA = "portfolio.auditoria"
 TAMANHO_MAXIMO_LOG_BYTES = 5 * 1024 * 1024  # 5 MB
 QUANTIDADE_BACKUPS_LOG = 5
 
-_formato_padrao = logging.Formatter(
+
+def _obter_fuso_horario() -> timezone | ZoneInfo:
+    nome_tz = os.getenv("TZ", "America/Sao_Paulo").strip() or "America/Sao_Paulo"
+    try:
+        return ZoneInfo(nome_tz)
+    except ZoneInfoNotFoundError:
+        # Fallback UTC-3 caso rode no Windows sem o pacote tzdata instalado
+        if nome_tz in {"America/Sao_Paulo", "America/Fortaleza", "America/Recife", "BRT", "-03:00", "-3"}:
+            return timezone(timedelta(hours=-3))
+        return datetime.now().astimezone().tzinfo or timezone.utc
+
+
+class _FormatadorFusoHorario(logging.Formatter):
+    def __init__(self, fmt: str, datefmt: str | None = None) -> None:
+        super().__init__(fmt=fmt, datefmt=datefmt)
+        self._fuso = _obter_fuso_horario()
+
+    def formatTime(self, record: logging.LogRecord, datefmt: str | None = None) -> str:
+        instante = datetime.fromtimestamp(record.created, tz=self._fuso)
+        if datefmt:
+            return instante.strftime(datefmt)
+        return instante.isoformat(timespec="seconds")
+
+
+_formato_padrao = _FormatadorFusoHorario(
     fmt="%(asctime)s | %(levelname)-7s | %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )

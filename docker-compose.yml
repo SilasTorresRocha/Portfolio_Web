@@ -9,8 +9,8 @@ services:
       - .env
     environment:
       PORTFOLIO_PASTA_DADOS: /app/dados
+      TZ: ${TZ:-America/Sao_Paulo}
     ports:
       - "${PORTFOLIO_PORTA:-8000}:8000"
     volumes:
       - ./dados:/app/dados
-

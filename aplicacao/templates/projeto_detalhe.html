@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+
+{% block conteudo %}
+<div class="barra-retorno">
+  <a class="link-voltar" href="/">
+    <svg class="icone" viewBox="0 0 24 24" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    <span>voltar para projetos</span>
+  </a>
+
+  <div class="meta-linha">
+    {% if not projeto.publicado %}
+    <span class="selo selo-aviso">RASCUNHO (VISÍVEL APENAS LOGADO)</span>
+    {% endif %}
+    {% if projeto.status %}
+    <span class="selo selo-destaque">{{ projeto.status }}</span>
+    {% endif %}
+    {% if projeto.ano %}
+    <span class="selo">{{ projeto.ano }}</span>
+    {% endif %}
+    {% if projeto.midias %}
+    <span class="selo">{{ projeto.midias|length }} {{ "FOTO" if projeto.midias|length == 1 else "FOTOS" }}</span>
+    {% endif %}
+    {% if projeto.anexos %}
+    <span class="selo">{{ projeto.anexos|length }} PDF</span>
+    {% endif %}
+  </div>
+</div>
+
+<header class="projeto-cabecalho">
+  <h1 class="projeto-titulo">{{ projeto.titulo }}</h1>
+  {% if projeto.resumo %}
+  <p class="projeto-resumo">{{ projeto.resumo }}</p>
+  {% endif %}
+
+  {% if projeto.tags %}
+  <div class="projeto-tags">
+    {% for t in projeto.tags %}
+    <a class="pilula-tag" href="/?tag={{ t.slug }}">{{ t.nome }}</a>
+    {% endfor %}
+  </div>
+  {% endif %}
+</header>
+
+{% if projeto.midias %}
+<section id="galeria-projeto" class="galeria-bloco" aria-label="Galeria do projeto">
+  <div id="galeria-palco" class="galeria-palco" title="Clique para ampliar em tela cheia">
+    <img
+      id="galeria-imagem-ativa"
+      src="/midias/{{ projeto.midias[0].arquivo_original }}"
+      alt="{{ projeto.midias[0].legenda or projeto.titulo }}"
+    >
+
+    {% if projeto.midias|length > 1 %}
+    <button id="galeria-ant" type="button" class="galeria-seta galeria-seta-ant" aria-label="Imagem anterior">
+      <svg class="icone" viewBox="0 0 24 24" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <button id="galeria-prox" type="button" class="galeria-seta galeria-seta-prox" aria-label="Próxima imagem">
+      <svg class="icone" viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+    </button>
+    {% endif %}
+  </div>
+
+  <div class="galeria-barra">
+    <div class="galeria-legenda-wrap">
+      <span id="galeria-contador" class="galeria-contador">01 / {{ "%02d"|format(projeto.midias|length) }}</span>
+      <p id="galeria-legenda" class="galeria-legenda">
+        {{ projeto.midias[0].legenda or "Clique na imagem para ampliar em tela cheia." }}
+      </p>
+    </div>
+
+    <button id="galeria-expandir" type="button" class="botao botao-pequeno botao-sutil">
+      <svg class="icone" viewBox="0 0 24 24" aria-hidden="true"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+      <span>Tela cheia</span>
+    </button>
+  </div>
+
+  {% if projeto.midias|length > 1 %}
+  <div class="galeria-miniaturas" role="tablist" aria-label="Miniaturas da galeria">
+    {% for midia in projeto.midias %}
+    <button
+      type="button"
+      class="galeria-miniatura {% if loop.first %}ativa{% endif %}"
+      aria-label="Ver imagem {{ loop.index }}"
+      aria-current="{{ 'true' if loop.first else 'false' }}"
+    >
+      <img
+        src="/midias/{{ midia.arquivo_miniatura }}"
+        alt="{{ midia.legenda or (projeto.titulo ~ ' — foto ' ~ loop.index) }}"
+        loading="lazy"
+      >
+    </button>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <script id="dados-galeria" type="application/json">
+    [
+      {% for midia in projeto.midias %}
+      {
+        "original": {{ ("/midias/" ~ midia.arquivo_original) | tojson }},
+        "miniatura": {{ ("/midias/" ~ midia.arquivo_miniatura) | tojson }},
+        "legenda": {{ (midia.legenda or "") | tojson }}
+      }{% if not loop.last %},{% endif %}
+      {% endfor %}
+    ]
+  </script>
+</section>
+
+<div id="lightbox" class="lightbox" role="dialog" aria-modal="true" aria-label="Visualização ampliada" hidden>
+  <div class="lightbox-topo">
+    <span id="lightbox-contador" class="galeria-contador">01 / {{ "%02d"|format(projeto.midias|length) }}</span>
+    <div class="lightbox-acoes">
+      <button id="lightbox-zoom" type="button" class="botao botao-pequeno">Ampliar 100%</button>
+      <button id="lightbox-fechar" type="button" class="botao botao-pequeno">Fechar (Esc)</button>
+    </div>
+  </div>
+
+  <div class="lightbox-palco">
+    {% if projeto.midias|length > 1 %}
+    <button id="lightbox-ant" type="button" class="galeria-seta galeria-seta-ant" aria-label="Imagem anterior">
+      <svg class="icone" viewBox="0 0 24 24" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    {% endif %}
+
+    <img id="lightbox-imagem" class="lightbox-imagem" src="" alt="">
+
+    {% if projeto.midias|length > 1 %}
+    <button id="lightbox-prox" type="button" class="galeria-seta galeria-seta-prox" aria-label="Próxima imagem">
+      <svg class="icone" viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+    </button>
+    {% endif %}
+  </div>
+
+  <div id="lightbox-rodape" class="lightbox-rodape">
+    <span id="lightbox-legenda"></span>
+  </div>
+</div>
+{% endif %}
+
+{% if projeto.tem_psr %}
+<section class="grade-psr" aria-label="Contexto rápido do projeto">
+  {% if projeto.problema %}
+  <article class="cartao-psr">
+    <p class="psr-rotulo">01 / Problema</p>
+    <p class="psr-texto">{{ projeto.problema }}</p>
+  </article>
+  {% endif %}
+
+  {% if projeto.solucao %}
+  <article class="cartao-psr">
+    <p class="psr-rotulo">02 / Solução</p>
+    <p class="psr-texto">{{ projeto.solucao }}</p>
+  </article>
+  {% endif %}
+
+  {% if projeto.resultado %}
+  <article class="cartao-psr">
+    <p class="psr-rotulo">03 / Resultado</p>
+    <p class="psr-texto">{{ projeto.resultado }}</p>
+  </article>
+  {% endif %}
+</section>
+{% endif %}
+
+{% set tem_lateral = (projeto.links_externos | length > 0) or (projeto.anexos | length > 0) %}
+{% if projeto.descricao_html or tem_lateral %}
+<section class="grade-detalhe {% if not tem_lateral %}coluna-unica{% endif %}">
+  {% if projeto.descricao_html %}
+  <article class="bloco">
+    <p class="rotulo-secao">DETALHAMENTO TÉCNICO</p>
+    <div class="conteudo-markdown">
+      {{ projeto.descricao_html | safe }}
+    </div>
+  </article>
+  {% endif %}
+
+  {% if tem_lateral %}
+  <aside class="lateral-evidencias" aria-label="Links e documentos">
+    {% if projeto.links_externos %}
+    <div class="painel-lateral">
+      <h2 class="painel-lateral-titulo">Links e Referências</h2>
+      <div class="lista-links">
+        {% for link in projeto.links_externos %}
+        <a class="item-link-externo" href="{{ link.url }}" target="_blank" rel="noopener noreferrer">
+          <span class="item-link-esquerda">
+            {% if link.tipo == "github" %}
+            <svg class="icone" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+            {% elif link.tipo == "video" %}
+            <svg class="icone" viewBox="0 0 24 24" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            {% elif link.tipo == "producao" %}
+            <svg class="icone" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            {% else %}
+            <svg class="icone" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            {% endif %}
+            <span>{{ link.rotulo }}</span>
+          </span>
+          <svg class="icone" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if projeto.anexos %}
+    <div class="painel-lateral">
+      <h2 class="painel-lateral-titulo">Documentos e Comprovantes</h2>
+      <div class="lista-anexos">
+        {% for anexo in projeto.anexos %}
+        <div class="item-anexo">
+          <div class="anexo-topo">
+            <svg class="icone anexo-icone" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            <div>
+              <p class="anexo-titulo">{{ anexo.titulo }}</p>
+              <span class="anexo-meta">PDF · {{ anexo.tamanho_formatado }}</span>
+            </div>
+          </div>
+          <div class="anexo-acoes">
+            <a class="botao botao-pequeno" href="/anexos/{{ anexo.id }}/ver" target="_blank" rel="noopener noreferrer">Visualizar</a>
+            <a class="botao botao-pequeno botao-sutil" href="/anexos/{{ anexo.id }}/baixar">Baixar</a>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </aside>
+  {% endif %}
+</section>
+{% endif %}
+{% endblock %}
+

@@ -20,6 +20,7 @@ from aplicacao.registros import (
 )
 from aplicacao.rotas.administracao import roteador_admin
 from aplicacao.rotas.publicas import roteador_publico
+from aplicacao.versao import VERSAO
 
 PASTA_APLICACAO = Path(__file__).resolve().parent
 PASTA_TEMPLATES = PASTA_APLICACAO / "templates"
@@ -34,7 +35,8 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     inicializar_banco(cfg)
 
     logger_app.info(
-        "Aplicação iniciada | ambiente=%s | dados=%s | confiar_proxy=%s | cookie_seguro=%s",
+        "Aplicação iniciada | versao=%s | ambiente=%s | dados=%s | confiar_proxy=%s | cookie_seguro=%s",
+        VERSAO,
         cfg.ambiente,
         cfg.pasta_dados,
         cfg.confiar_proxy,
@@ -58,6 +60,7 @@ def criar_aplicacao() -> FastAPI:
     cfg = obter_configuracoes()
     app = FastAPI(
         title="Portfólio Técnico",
+        version=VERSAO,
         docs_url="/docs" if not cfg.eh_producao else None,
         redoc_url=None,
         lifespan=lifespan,
@@ -91,7 +94,11 @@ def criar_aplicacao() -> FastAPI:
         resposta.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
         resposta.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
 
-        if not request.url.path.startswith("/estaticos/"):
+        ignorar_log_acesso = (
+            request.url.path.startswith("/estaticos/")
+            or (request.url.path == "/saude" and resposta.status_code < 400)
+        )
+        if not ignorar_log_acesso:
             logger_app.info(
                 "HTTP %s | ip=%s | %s %s | %.1fms",
                 resposta.status_code,

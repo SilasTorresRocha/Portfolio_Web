@@ -1,0 +1,136 @@
+{% extends "config_base.html" %}
+
+{% block conteudo_admin %}
+<div class="cabecalho-secao" style="margin-bottom: 18px;">
+  <div>
+    <p class="rotulo-secao">PERSONALIZAÇÃO</p>
+    <h1 class="titulo-pagina" style="font-size: 22px;">Perfil Público e Aparência</h1>
+    <p class="subtitulo-pagina">Tudo aqui aparece no cabeçalho da vitrine e nas meta tags de compartilhamento.</p>
+  </div>
+</div>
+
+<form method="post" action="/config/perfil" enctype="multipart/form-data">
+  <input type="hidden" name="csrf_token" value="{{ csrf_admin }}">
+
+  <section class="bloco">
+    <p class="rotulo-secao">01 · IDENTIDADE</p>
+    <div class="grade-campos-2">
+      <div class="campo">
+        <label for="perfil-nome">Nome exibido *</label>
+        <input id="perfil-nome" name="nome" type="text" class="entrada" value="{{ perfil.nome or '' }}" required>
+      </div>
+      <div class="campo">
+        <label for="perfil-titulo-site">Título da aba / barra superior</label>
+        <input id="perfil-titulo-site" name="titulo_site" type="text" class="entrada" value="{{ perfil.titulo_site or '' }}">
+      </div>
+    </div>
+
+    <div class="campo">
+      <label for="perfil-subtitulo">Subtítulo técnico curto</label>
+      <input
+        id="perfil-subtitulo"
+        name="subtitulo"
+        type="text"
+        class="entrada"
+        value="{{ perfil.subtitulo or '' }}"
+        placeholder="Ex.: Engenharia de Computação · Automação, Eletrônica & Infraestrutura"
+      >
+    </div>
+
+    <div class="campo" style="margin-bottom: 0;">
+      <label for="perfil-bio">Apresentação breve (2–3 linhas)</label>
+      <textarea id="perfil-bio" name="bio" class="entrada area-texto">{{ perfil.bio or '' }}</textarea>
+    </div>
+  </section>
+
+  <section class="bloco secao-admin-espaco">
+    <p class="rotulo-secao">02 · LINKS DE CONTATO</p>
+    <div class="grade-campos-3">
+      <div class="campo">
+        <label for="perfil-github">GitHub (URL)</label>
+        <input id="perfil-github" name="github_url" type="url" class="entrada mono" value="{{ perfil.github_url or '' }}" placeholder="https://github.com/...">
+      </div>
+      <div class="campo">
+        <label for="perfil-linkedin">LinkedIn (URL)</label>
+        <input id="perfil-linkedin" name="linkedin_url" type="url" class="entrada mono" value="{{ perfil.linkedin_url or '' }}" placeholder="https://linkedin.com/in/...">
+      </div>
+      <div class="campo">
+        <label for="perfil-email">E-mail de contato</label>
+        <input id="perfil-email" name="email" type="email" class="entrada mono" value="{{ perfil.email or '' }}" placeholder="contato@dominio.com">
+      </div>
+    </div>
+  </section>
+
+  <section class="bloco secao-admin-espaco">
+    <p class="rotulo-secao">03 · FOTO DE PERFIL E CURRÍCULO PDF</p>
+    <div class="grade-campos-2">
+      <div class="campo">
+        <label for="perfil-foto">Foto de perfil (convertida para 320×320 WebP)</label>
+        {% if perfil.foto_caminho %}
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
+          <img src="/midias/{{ perfil.foto_caminho }}" alt="Avatar atual" style="width: 56px; height: 56px; border-radius: 6px; border: 1px solid var(--borda-forte); object-fit: cover;">
+          <label class="check-label" style="font-size: 12.5px; color: #fca5a5;">
+            <input type="checkbox" name="remover_foto" value="1">
+            <span>Remover foto atual</span>
+          </label>
+        </div>
+        {% endif %}
+        <input id="perfil-foto" name="foto" type="file" class="entrada" accept=".png,.jpg,.jpeg,.webp,.jxl,image/*">
+      </div>
+
+      <div class="campo">
+        <label for="perfil-curriculo">Currículo em PDF (botão direto na vitrine)</label>
+        {% if perfil.curriculo_caminho %}
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
+          <a class="botao botao-pequeno" href="/curriculo" target="_blank" rel="noopener noreferrer">Visualizar currículo atual</a>
+          <label class="check-label" style="font-size: 12.5px; color: #fca5a5;">
+            <input type="checkbox" name="remover_curriculo" value="1">
+            <span>Remover PDF</span>
+          </label>
+        </div>
+        {% endif %}
+        <input id="perfil-curriculo" name="curriculo" type="file" class="entrada" accept=".pdf,application/pdf">
+      </div>
+    </div>
+  </section>
+
+  <section class="bloco secao-admin-espaco">
+    <p class="rotulo-secao">04 · COR DE DESTAQUE</p>
+    <div class="presets-cor">
+      {% for hex_cor, nome_cor in cores_preset %}
+      <button
+        type="button"
+        class="preset-cor-btn {% if (perfil.cor_destaque or '#3b82f6')|lower == hex_cor %}ativa{% endif %}"
+        data-preset-cor="{{ hex_cor }}"
+      >
+        <span class="bolinha-cor" style="background-color: {{ hex_cor }};"></span>
+        <span>{{ nome_cor }}</span>
+      </button>
+      {% endfor %}
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 10px; max-width: 240px;">
+      <input
+        id="input-cor-picker"
+        type="color"
+        value="{{ perfil.cor_destaque or '#3b82f6' }}"
+        style="width: 44px; height: 38px; border: 1px solid var(--borda-forte); background: var(--fundo); border-radius: var(--raio); cursor: pointer;"
+      >
+      <input
+        id="input-cor-texto"
+        name="cor_destaque"
+        type="text"
+        class="entrada mono"
+        value="{{ perfil.cor_destaque or '#3b82f6' }}"
+        pattern="^#[0-9a-fA-F]{6}$"
+        required
+      >
+    </div>
+
+    <div class="acoes-linha">
+      <button type="submit" class="botao botao-primario">Salvar perfil e aparência</button>
+    </div>
+  </section>
+</form>
+{% endblock %}
+

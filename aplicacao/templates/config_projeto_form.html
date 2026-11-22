@@ -1,0 +1,487 @@
+{% extends "config_base.html" %}
+
+{% block conteudo_admin %}
+<div class="cabecalho-secao" style="margin-bottom: 18px;">
+  <div>
+    <p class="rotulo-secao">{{ "NOVO PROJETO" if modo == "criar" else "EDITAR PROJETO" }}</p>
+    <h1 class="titulo-pagina" style="font-size: 22px;">
+      {{ "Cadastrar novo projeto" if modo == "criar" else projeto.titulo }}
+    </h1>
+  </div>
+  <div style="display: flex; gap: 8px;">
+    <a class="botao botao-pequeno botao-sutil" href="/config">← Voltar para lista</a>
+    {% if modo == "editar" %}
+    <a class="botao botao-pequeno" href="/projeto/{{ projeto.slug }}" target="_blank" rel="noopener noreferrer">Abrir página pública</a>
+    {% endif %}
+  </div>
+</div>
+
+<div class="grade-editor-projeto">
+  <div>
+    <form
+      id="form-projeto"
+      method="post"
+      action="{{ '/config/projetos/novo' if modo == 'criar' else '/config/projetos/' ~ projeto.id ~ '/editar' }}"
+      data-tem-capa="{{ '1' if projeto.midias|length > 0 else '0' }}"
+    >
+      <input type="hidden" name="csrf_token" value="{{ csrf_admin }}">
+
+      <section class="bloco">
+        <p class="rotulo-secao">01 · IDENTIFICAÇÃO E CLASSIFICAÇÃO</p>
+
+        <div class="campo">
+          <label for="campo-titulo">Título do projeto *</label>
+          <input
+            id="campo-titulo"
+            name="titulo"
+            type="text"
+            class="entrada"
+            value="{{ projeto.titulo or '' }}"
+            placeholder="Ex.: Automação do Poço Artesiano e Dosagem de Cloro"
+            required
+          >
+        </div>
+
+        <div class="grade-campos-3">
+          <div class="campo">
+            <label for="campo-slug">Slug na URL (opcional)</label>
+            <input
+              id="campo-slug"
+              name="slug"
+              type="text"
+              class="entrada mono"
+              value="{{ projeto.slug or '' }}"
+              placeholder="gerado-automaticamente"
+            >
+          </div>
+          <div class="campo">
+            <label for="campo-status">Selo / Status (opcional)</label>
+            <input
+              id="campo-status"
+              name="status"
+              type="text"
+              class="entrada mono"
+              value="{{ projeto.status or '' }}"
+              placeholder="EM PRODUÇÃO, HARDWARE..."
+            >
+          </div>
+          <div class="campo">
+            <label for="campo-ano">Ano</label>
+            <input
+              id="campo-ano"
+              name="ano"
+              type="text"
+              class="entrada mono"
+              value="{{ projeto.ano or '' }}"
+              placeholder="2026"
+            >
+          </div>
+        </div>
+
+        <div class="grade-campos-2">
+          <div class="campo">
+            <label for="campo-tags">Tags (separadas por vírgula)</label>
+            <input
+              id="campo-tags"
+              name="tags_texto"
+              type="text"
+              class="entrada"
+              value="{{ projeto.tags_texto or '' }}"
+              placeholder="Hardware, Automação, IoT, Em Produção"
+            >
+            {% if todas_tags %}
+            <div class="sugestoes-tags" aria-label="Tags já cadastradas">
+              {% for t in todas_tags %}
+              <button type="button" class="sugestao-tag-btn" data-sugestao-tag="{{ t.nome }}">+ {{ t.nome }}</button>
+              {% endfor %}
+            </div>
+            {% endif %}
+          </div>
+
+          <div class="campo">
+            <label for="campo-ordem">Ordem de exibição (menor aparece primeiro)</label>
+            <input
+              id="campo-ordem"
+              name="ordem"
+              type="number"
+              class="entrada mono"
+              value="{{ projeto.ordem if projeto.ordem is not none else 0 }}"
+            >
+          </div>
+        </div>
+
+        <div class="linha-checks">
+          <label class="check-label">
+            <input type="checkbox" name="publicado" value="1" {% if projeto.publicado %}checked{% endif %}>
+            <span>Publicado na vitrine</span>
+          </label>
+          <label class="check-label">
+            <input type="checkbox" name="destaque" value="1" {% if projeto.destaque %}checked{% endif %}>
+            <span>Destacar no topo</span>
+          </label>
+        </div>
+      </section>
+
+      <section class="bloco secao-admin-espaco">
+        <p class="rotulo-secao">02 · LEITURA RÁPIDA (RESUMO + PROBLEMA / SOLUÇÃO / RESULTADO)</p>
+
+        <div class="campo">
+          <label for="campo-resumo">Resumo curto (exibido no card da vitrine)</label>
+          <textarea
+            id="campo-resumo"
+            name="resumo"
+            class="entrada area-texto"
+            style="min-height: 70px;"
+            placeholder="Uma ou duas frases diretas explicando o que o projeto faz e o principal diferencial."
+          >{{ projeto.resumo or '' }}</textarea>
+          <div class="campo-ajuda">
+            <span>Ideal para leitura em 3 segundos na vitrine.</span>
+            <span id="contador-resumo">0 / 160 recomendados</span>
+          </div>
+        </div>
+
+        <div class="campo">
+          <label for="campo-problema">01 / Problema ou Contexto</label>
+          <textarea
+            id="campo-problema"
+            name="problema"
+            class="entrada area-texto"
+            placeholder="Qual falha, gargalo ou necessidade real existia antes desse projeto?"
+          >{{ projeto.problema or '' }}</textarea>
+        </div>
+
+        <div class="campo">
+          <label for="campo-solucao">02 / Solução Técnica</label>
+          <textarea
+            id="campo-solucao"
+            name="solucao"
+            class="entrada area-texto"
+            placeholder="O que você projetou, construiu ou reestruturou (componentes, arquitetura, protocolos)?"
+          >{{ projeto.solucao or '' }}</textarea>
+        </div>
+
+        <div class="campo" style="margin-bottom: 0;">
+          <label for="campo-resultado">03 / Resultado ou Impacto</label>
+          <textarea
+            id="campo-resultado"
+            name="resultado"
+            class="entrada area-texto"
+            placeholder="O que melhorou na prática? Estabilidade, produção, homologação, métricas..."
+          >{{ projeto.resultado or '' }}</textarea>
+        </div>
+      </section>
+
+      <section class="bloco secao-admin-espaco">
+        <p class="rotulo-secao">03 · DETALHAMENTO EM MARKDOWN (OPCIONAL)</p>
+
+        <div class="md-barra">
+          <div class="md-ferramentas" role="toolbar" aria-label="Formatação Markdown">
+            <button type="button" class="md-btn" data-md-acao="h2">H2</button>
+            <button type="button" class="md-btn" data-md-acao="h3">H3</button>
+            <button type="button" class="md-btn" data-md-acao="negrito">Negrito</button>
+            <button type="button" class="md-btn" data-md-acao="italico">Itálico</button>
+            <button type="button" class="md-btn" data-md-acao="lista">Lista</button>
+            <button type="button" class="md-btn" data-md-acao="codigo">Código</button>
+            <button type="button" class="md-btn" data-md-acao="bloco">Bloco</button>
+            <button type="button" class="md-btn" data-md-acao="tabela">Tabela</button>
+            <button type="button" class="md-btn" data-md-acao="citacao">Citação</button>
+            <button type="button" class="md-btn" data-md-acao="link">Link</button>
+          </div>
+          <div class="md-abas">
+            <button id="tab-md-escrever" type="button" class="md-aba ativa">Escrever</button>
+            <button id="tab-md-preview" type="button" class="md-aba">Pré-visualizar</button>
+          </div>
+        </div>
+
+        <textarea
+          id="campo-markdown"
+          name="descricao_markdown"
+          class="entrada area-markdown"
+          placeholder="## Arquitetura&#10;&#10;Descreva decisões técnicas, componentes, diagramas ou aprendizados..."
+        >{{ projeto.descricao_markdown or '' }}</textarea>
+        <div id="markdown-preview" class="md-preview-box conteudo-markdown" hidden></div>
+
+        <div class="acoes-linha">
+          <button type="submit" class="botao botao-primario">
+            {{ "Criar projeto e continuar para galeria" if modo == "criar" else "Salvar alterações do projeto" }}
+          </button>
+        </div>
+      </section>
+    </form>
+
+    {% if modo == "criar" %}
+    <div class="alerta secao-admin-espaco" style="color: var(--texto-secundario);">
+      Após clicar em <strong>Criar projeto</strong>, você será direcionado automaticamente para enviar múltiplas fotos da galeria, anexar PDFs comprovantes e cadastrar links externos.
+    </div>
+    {% else %}
+
+    <!-- ================================================================
+         GALERIA DE IMAGENS
+         ================================================================ -->
+    <section id="galeria" class="bloco secao-admin-espaco">
+      <p class="rotulo-secao">04 · GALERIA DE FOTOS (OTIMIZAÇÃO AUTOMÁTICA EM WEBP)</p>
+
+      <form
+        method="post"
+        action="/config/projetos/{{ projeto.id }}/midias"
+        enctype="multipart/form-data"
+      >
+        <input type="hidden" name="csrf_token" value="{{ csrf_admin }}">
+        <label id="zona-upload-midias" class="zona-drop" for="input-upload-midias">
+          <span style="font-weight: 500;">Clique para selecionar ou arraste imagens aqui</span>
+          <span id="info-arquivos-selecionados" class="mono" style="font-size: 11.5px; color: var(--texto-sutil);">
+            PNG, JPG, WebP, GIF{{ " ou JXL" if suporte_jxl else "" }} · até 15 MB por imagem (convertidas para WebP + miniatura)
+          </span>
+          <input
+            id="input-upload-midias"
+            name="imagens"
+            type="file"
+            accept=".png,.jpg,.jpeg,.webp,.gif,.jxl,image/*"
+            multiple
+            required
+          >
+        </label>
+        <div class="acoes-linha" style="margin-top: 12px;">
+          <button type="submit" class="botao botao-primario">Enviar imagens selecionadas</button>
+        </div>
+      </form>
+
+      {% if projeto.midias %}
+      <div class="grade-midias-admin">
+        {% for m in projeto.midias %}
+        <article class="card-midia-admin {% if m.eh_capa %}eh-capa{% endif %}">
+          <div class="midia-admin-preview">
+            <img src="/midias/{{ m.arquivo_miniatura }}" alt="{{ m.legenda or 'Foto do projeto' }}" loading="lazy">
+            {% if m.eh_capa %}
+            <span class="cartao-selo-status" style="border-color: var(--cor-destaque);">CAPA</span>
+            {% endif %}
+          </div>
+
+          <div class="midia-admin-corpo">
+            <form method="post" action="/config/projetos/{{ projeto.id }}/midias/{{ m.id }}/editar">
+              <input type="hidden" name="csrf_token" value="{{ csrf_admin }}">
+              <div class="campo" style="margin-bottom: 8px;">
+                <label for="legenda-{{ m.id }}">Legenda</label>
+                <input
+                  id="legenda-{{ m.id }}"
+                  name="legenda"
+                  type="text"
+                  class="entrada"
+                  style="padding: 7px 9px; font-size: 13px;"
+                  value="{{ m.legenda or '' }}"
+                  placeholder="Ex.: Medição térmica no LM7805"
+                >
+              </div>
+              <div class="campo" style="margin-bottom: 8px;">
+                <label for="ordem-{{ m.id }}">Ordem</label>
+                <input
+                  id="ordem-{{ m.id }}"
+                  name="ordem"
+                  type="number"
+                  class="entrada mono"
+                  style="padding: 6px 9px; font-size: 12px;"
+                  value="{{ m.ordem }}"
+                >
+              </div>
+              <div class="midia-admin-rodape">
+                <button type="submit" class="botao botao-pequeno">Salvar</button>
+                {% if not m.eh_capa %}
+                <button type="submit" name="definir_capa" value="1" class="botao botao-pequeno botao-sutil">Usar como capa</button>
+                {% endif %}
+              </div>
+            </form>
+
+            <form
+              method="post"
+              action="/config/projetos/{{ projeto.id }}/midias/{{ m.id }}/excluir"
+              style="margin-top: 4px;"
+              onsubmit="return confirm('Remover esta foto da galeria?');"
+            >
+              <input type="hidden" name="csrf_token" value="{{ csrf_admin }}">
+              <button type="submit" class="botao botao-pequeno botao-perigo" style="width: 100%;">Remover foto</button>
+            </form>
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="subtitulo-pagina" style="margin-top: 14px;">Nenhuma foto enviada para este projeto ainda.</p>
+      {% endif %}
+    </section>
+
+    <!-- ================================================================
+         ANEXOS PDF (DOCUMENTOS E COMPROVANTES)
+         ================================================================ -->
+    <section id="anexos" class="bloco secao-admin-espaco">
+      <p class="rotulo-secao">05 · DOCUMENTOS E COMPROVANTES (PDF)</p>
+
+      <form
+        method="post"
+        action="/config/projetos/{{ projeto.id }}/anexos"
+        enctype="multipart/form-data"
+      >
+        <input type="hidden" name="csrf_token" value="{{ csrf_admin }}">
+        <div class="grade-campos-2">
+          <div class="campo">
+            <label for="anexo-titulo">Título amigável do documento</label>
+            <input
+              id="anexo-titulo"
+              name="titulo"
+              type="text"
+              class="entrada"
+              placeholder="Ex.: Declaração Oficial UTFPR nº 16/2026 (SEI)"
+              required
+            >
+          </div>
+          <div class="campo">
+            <label for="anexo-arquivo">Arquivo PDF (até 20 MB)</label>
+            <input
+              id="anexo-arquivo"
+              name="arquivo"
+              type="file"
+              class="entrada"
+              accept=".pdf,application/pdf"
+              required
+            >
+          </div>
+        </div>
+        <button type="submit" class="botao botao-primario">Anexar PDF</button>
+      </form>
+
+      {% if projeto.anexos %}
+      <div class="lista-anexos" style="margin-top: 16px;">
+        {% for a in projeto.anexos %}
+        <div class="item-anexo" style="display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+          <div>
+            <p class="anexo-titulo">{{ a.titulo }}</p>
+            <span class="anexo-meta">{{ a.nome_arquivo_original }} · PDF · {{ a.tamanho_formatado }}</span>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <a class="botao botao-pequeno" href="/anexos/{{ a.id }}/ver" target="_blank" rel="noopener noreferrer">Visualizar</a>
+            <form
+              method="post"
+              action="/config/projetos/{{ projeto.id }}/anexos/{{ a.id }}/excluir"
+              style="margin: 0;"
+              onsubmit="return confirm('Remover o anexo &quot;{{ a.titulo }}&quot;?');"
+            >
+              <input type="hidden" name="csrf_token" value="{{ csrf_admin }}">
+              <button type="submit" class="botao botao-pequeno botao-perigo">Remover</button>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </section>
+
+    <!-- ================================================================
+         LINKS EXTERNOS
+         ================================================================ -->
+    <section id="links" class="bloco secao-admin-espaco">
+      <p class="rotulo-secao">06 · LINKS EXTERNOS (GITHUB, PRODUÇÃO, YOUTUBE)</p>
+
+      <form method="post" action="/config/projetos/{{ projeto.id }}/links">
+        <input type="hidden" name="csrf_token" value="{{ csrf_admin }}">
+        <div class="grade-campos-3">
+          <div class="campo">
+            <label for="link-rotulo">Rótulo</label>
+            <input
+              id="link-rotulo"
+              name="rotulo"
+              type="text"
+              class="entrada"
+              placeholder="Repositório GitHub"
+              required
+            >
+          </div>
+          <div class="campo">
+            <label for="link-url">URL (https://...)</label>
+            <input
+              id="link-url"
+              name="url"
+              type="url"
+              class="entrada mono"
+              placeholder="https://github.com/..."
+              required
+            >
+          </div>
+          <div class="campo">
+            <label for="link-tipo">Tipo</label>
+            <select id="link-tipo" name="tipo" class="entrada">
+              <option value="github">GitHub / Código</option>
+              <option value="producao">Sistema em Produção</option>
+              <option value="video">Vídeo (YouTube)</option>
+              <option value="documentacao">Documentação</option>
+              <option value="link">Outro link</option>
+            </select>
+          </div>
+        </div>
+        <button type="submit" class="botao botao-primario">Adicionar link</button>
+      </form>
+
+      {% if projeto.links_externos %}
+      <div class="lista-links" style="margin-top: 16px;">
+        {% for l in projeto.links_externos %}
+        <div class="item-link-externo" style="cursor: default;">
+          <div style="min-width: 0;">
+            <strong>{{ l.rotulo }}</strong>
+            <div class="mono" style="font-size: 11px; color: var(--texto-sutil); overflow: hidden; text-overflow: ellipsis;">{{ l.tipo }} · {{ l.url }}</div>
+          </div>
+          <div style="display: flex; gap: 6px; flex-shrink: 0;">
+            <a class="botao botao-pequeno botao-sutil" href="{{ l.url }}" target="_blank" rel="noopener noreferrer">Abrir</a>
+            <form
+              method="post"
+              action="/config/projetos/{{ projeto.id }}/links/{{ l.id }}/excluir"
+              style="margin: 0;"
+            >
+              <input type="hidden" name="csrf_token" value="{{ csrf_admin }}">
+              <button type="submit" class="botao botao-pequeno botao-perigo">Remover</button>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </section>
+    {% endif %}
+  </div>
+
+  <!-- Coluna lateral: Checklist discreto de completude -->
+  <aside class="coluna-checklist" aria-label="Checklist do projeto">
+    <div class="checklist-caixa">
+      <div class="checklist-cabecalho">
+        <span class="rotulo-secao" style="margin: 0;">CHECKLIST DE CLAREZA</span>
+        <span id="checklist-contagem" class="mono" style="font-size: 12px; color: var(--texto-secundario);">0 / 6</span>
+      </div>
+      <div class="checklist-barra-trilha">
+        <div id="checklist-progresso" class="checklist-barra-valor" style="width: 0%;"></div>
+      </div>
+
+      <ul class="checklist-lista">
+        <li class="checklist-item" data-check-item="capa"><span>Foto de capa</span><span class="check-indicador">--</span></li>
+        <li class="checklist-item" data-check-item="resumo"><span>Resumo curto</span><span class="check-indicador">--</span></li>
+        <li class="checklist-item" data-check-item="problema"><span>Problema / Contexto</span><span class="check-indicador">--</span></li>
+        <li class="checklist-item" data-check-item="solucao"><span>Solução</span><span class="check-indicador">--</span></li>
+        <li class="checklist-item" data-check-item="resultado"><span>Resultado / Impacto</span><span class="check-indicador">--</span></li>
+        <li class="checklist-item" data-check-item="tags"><span>Tags</span><span class="check-indicador">--</span></li>
+      </ul>
+
+      <p class="checklist-nota">
+        Lembrete opcional para estruturar bem cada case. Não bloqueia o salvamento.
+      </p>
+    </div>
+
+    {% if modo == "editar" %}
+    <div class="checklist-caixa">
+      <p class="rotulo-secao" style="margin-bottom: 10px;">ATALHOS DA PÁGINA</p>
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <a class="link-nav" href="#galeria">→ Galeria ({{ projeto.midias|length }})</a>
+        <a class="link-nav" href="#anexos">→ Comprovantes PDF ({{ projeto.anexos|length }})</a>
+        <a class="link-nav" href="#links">→ Links externos ({{ projeto.links_externos|length }})</a>
+      </div>
+    </div>
+    {% endif %}
+  </aside>
+</div>
+{% endblock %}
+

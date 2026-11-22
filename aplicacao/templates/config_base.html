@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block conteudo %}
+<div class="admin-topo">
+  <nav class="admin-abas" aria-label="Navegação do painel administrativo">
+    <a class="admin-aba {% if aba_ativa == 'projetos' %}ativa{% endif %}" href="/config">Projetos</a>
+    <a class="admin-aba {% if aba_ativa == 'novo' %}ativa{% endif %}" href="/config/projetos/novo">+ Novo projeto</a>
+    <a class="admin-aba {% if aba_ativa == 'perfil' %}ativa{% endif %}" href="/config/perfil">Perfil &amp; Aparência</a>
+    <a class="admin-aba {% if aba_ativa == 'logs' %}ativa{% endif %}" href="/config/logs">Logs &amp; Sistema</a>
+  </nav>
+
+  <div class="admin-topo-direita">
+    <span class="selo">v{{ versao }}</span>
+    <a class="botao botao-pequeno botao-sutil" href="/" target="_blank" rel="noopener noreferrer">Ver vitrine</a>
+    <form method="post" action="/config/sair" style="margin: 0;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_sair }}">
+      <button type="submit" class="botao botao-pequeno botao-perigo">Sair</button>
+    </form>
+  </div>
+</div>
+
+{% if msg_ok %}
+<div class="alerta alerta-ok" role="status">{{ msg_ok }}</div>
+{% endif %}
+
+{% if msg_erro %}
+<div class="alerta alerta-erro" role="alert">{{ msg_erro }}</div>
+{% endif %}
+
+{% block conteudo_admin %}{% endblock %}
+
+<script src="/estaticos/admin.js" defer></script>
+{% endblock %}
+

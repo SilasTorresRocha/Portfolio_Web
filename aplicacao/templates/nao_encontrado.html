@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block conteudo %}
+<section class="estado-vazio" style="margin-top: 32px;">
+  <p class="rotulo-secao">HTTP 404</p>
+  <h2>{{ titulo_pagina or "Página não encontrada" }}</h2>
+  <p>{{ mensagem or "O conteúdo solicitado não foi localizado." }}</p>
+  <a class="botao botao-primario" href="/">Voltar para a vitrine</a>
+</section>
+{% endblock %}
+

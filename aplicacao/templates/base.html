@@ -4,6 +4,19 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{ titulo_pagina or "Portfólio Técnico" }}</title>
+  {% if og_descricao %}
+  <meta name="description" content="{{ og_descricao }}">
+  {% endif %}
+  {% block meta_og %}
+  {% if og_titulo %}
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="{{ og_titulo }}">
+  <meta property="og:description" content="{{ og_descricao or '' }}">
+  {% if og_url %}<meta property="og:url" content="{{ og_url }}">{% endif %}
+  {% if og_imagem %}<meta property="og:image" content="{{ og_imagem }}">{% endif %}
+  <meta name="twitter:card" content="{{ 'summary_large_image' if og_imagem else 'summary' }}">
+  {% endif %}
+  {% endblock %}
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -20,8 +33,7 @@
         <span>{{ perfil.titulo_site if perfil and perfil.titulo_site else "Portfólio Técnico" }}</span>
       </a>
       <nav class="navegacao" aria-label="Navegação principal">
-        <a class="link-nav" href="/">vitrine</a>
-        <a class="link-nav" href="/saude">/saude</a>
+        <a class="link-nav" href="/">projetos</a>
         <a class="link-nav" href="/config">/config</a>
       </nav>
     </div>
@@ -32,6 +44,14 @@
       {% block conteudo %}{% endblock %}
     </div>
   </main>
+
+  <footer class="rodape">
+    <div class="container rodape-interno">
+      <span>{{ perfil.nome if perfil and perfil.nome else "Portfólio Técnico" }}</span>
+      <span><a href="/config">administração</a></span>
+    </div>
+  </footer>
+
+  <script src="/estaticos/vitrine.js" defer></script>
 </body>
 </html>
-
