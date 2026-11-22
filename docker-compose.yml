@@ -14,3 +14,8 @@ services:
       - "${PORTFOLIO_PORTA:-8000}:8000"
     volumes:
       - ./dados:/app/dados
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"

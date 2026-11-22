@@ -6,5 +6,5 @@ Sempre atualize VERSAO seguindo SemVer (MAJOR.MINOR.PATCH) a cada alteração:
 - PATCH: correções de bugs e ajustes internos
 """
 
-VERSAO = "1.0.0"
+VERSAO = "1.0.1"
 REPOSITORIO_URL = "https://github.com/SilasTorresRocha/Portfolio_Privado"

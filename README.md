@@ -1,4 +1,4 @@
-# Portfólio Técnico Self-Hosted (`v1.0.0`)
+# Portfólio Técnico Self-Hosted (`v1.0.1`)
 
 Aplicação web self-hosted para apresentar projetos de forma visual, direta e profissional — com galeria de fotos em alta definição (zoom tela cheia), leitura em camadas (**Problema → Solução → Resultado** + Markdown), anexos comprobatórios em PDF, painel administrativo `/config`, backup completo com validação criptográfica e relatórios de acesso por e-mail.
 
@@ -26,14 +26,14 @@ Projetado para rodar **via Docker** com persistência centralizada na pasta `dad
 
 ---
 
-## Arquitetura e Engenharia de Segurança
+## Arquitetura e Segurança
 
-Este projeto foi construído com práticas de segurança e confiabilidade voltadas para exposição real na internet:
+Este projeto foi construído com:
 
 * **Backup & Restauração com Integridade (`SHA-256`) e Autenticidade (`HMAC-SHA256`):**
   * **Snapshot online consistente:** o banco SQLite (em modo `WAL`) é exportado via API nativa `sqlite3.Connection.backup()`, evitando corrupção mesmo com o sistema em uso, seguido de `PRAGMA integrity_check`.
   * **Verificação obrigatória de integridade:** `manifesto.json` registra o hash **SHA-256** de 100% dos arquivos (`banco/portfolio.db` + todas as mídias e PDFs). Qualquer corrupção de 1 bit ou arquivo extra não declarado bloqueia a restauração antes de tocar nos dados atuais.
-  * **Assinatura `HMAC-SHA256` não-bloqueante:** o manifesto canônico é assinado com `PORTFOLIO_CHAVE_SECRETA`. Na mesma instância, valida autenticidade automaticamente; ao migrar de servidor ou trocar o `.env`, a integridade SHA-256 + SQLite continua exigida, mas o sistema exibe aviso claro e solicita confirmação explícita para concluir — garantindo segurança sem trancar o proprietário fora do próprio backup.
+  * **Assinatura `HMAC-SHA256` não-bloqueante:** o manifesto canônico é assinado com `PORTFOLIO_CHAVE_SECRETA`. Na mesma instância, valida autenticidade automaticamente; ao migrar de servidor ou trocar o `.env`, a integridade SHA-256 + SQLite continua exigida, mas o sistema exibe aviso claro e solicita confirmação explícita para concluir, dando segurança sem trancar o proprietário fora do próprio backup.
   * **Proteção contra ataques em arquivos compactados:** validação estrita anti-**Zip Slip** (bloqueio de caminhos absolutos, `..` e symlinks) e anti-**Zip Bomb** (limite de 5.000 arquivos e 500 MB descompactados medidos em tempo real durante a leitura).
   * **Segurança de dados:** `.env` nunca é incluído no `.zip` de backup, e um snapshot automático é gravado em `dados/backups_pre_restore/` antes de aplicar qualquer restauração.
 * **Autenticação e Hardening:**
@@ -46,7 +46,8 @@ Este projeto foi construído com práticas de segurança e confiabilidade voltad
   * Imagens são decodificadas e re-encodadas do zero em WebP pelo Pillow (removendo metadados/payloads embutidos).
   * Markdown compilado é sanitizado no servidor com **`nh3`**, bloqueando `<script>`, manipuladores de evento e esquemas `javascript:`.
   * Toda leitura/remoção de arquivos em `dados/midias/` valida `Path.resolve().relative_to(...)` contra *path traversal*.
-* **Observabilidade, Métricas e Auditoria:**
+* **Observabilidade, Métricas, Baixo I/O (SDCard / SBCs) e Auditoria:**
+  * SQLite em modo **WAL** com `PRAGMA synchronous = NORMAL` e `temp_store = MEMORY`, buffer em RAM com *flush* em lote para métricas de acesso, exclusão de ruído (`GET /midias/*`, `/estaticos/*`, `/saude` 200) e rotação de logs no Docker (`5m × 2`), reduzindo drasticamente escritas em SDCards (ex.: Orange Pi / Raspberry Pi).
   * Logs rotativos separados em `dados/logs/aplicacao.log` e `dados/logs/auditoria.log` com suporte configurável a proxy reverso confiável (`CF-Connecting-IP`, `X-Forwarded-For`) e fuso horário via `TZ`.
   * Métricas leves de visitas em projetos, documentos PDF e currículo — ignorando automaticamente o administrador autenticado e `PORTFOLIO_IPS_IGNORADOS`, separando bots/crawlers e enviando **relatório diário automático via SMTP** (com escolha do destinatário direto pelo painel).
 
@@ -58,7 +59,7 @@ Este projeto foi construído com práticas de segurança e confiabilidade voltad
 
 ### 1. Clone o repositório e crie o `.env`
 ```bash
-git clone <url-do-repositorio>
+gh clone SilasTorresRocha/Portfolio_Privado
 cd <pasta-do-projeto>
 cp .env.exemplo .env
 ```

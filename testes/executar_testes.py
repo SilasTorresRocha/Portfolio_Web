@@ -177,12 +177,19 @@ async def executar_suite() -> None:
 
         app = criar_aplicacao()
         async with app.router.lifespan_context(app):
-            # 1. Saúde, versão semântica e modo produção
+            # 1. Saúde, versão semântica, SQLite WAL+NORMAL e modo produção
+            from aplicacao.banco import obter_conexao
+
+            with obter_conexao(cfg) as conn:
+                assert conn.execute("PRAGMA journal_mode;").fetchone()[0].lower() == "wal"
+                assert conn.execute("PRAGMA synchronous;").fetchone()[0] == 1  # NORMAL
+                assert conn.execute("PRAGMA temp_store;").fetchone()[0] == 2  # MEMORY
+
             st, _, _, corpo = await requisitar(app, "GET", "/saude")
             assert st == 200 and json.loads(corpo.decode())["versao"] == VERSAO
             assert (await requisitar(app, "GET", "/docs"))[0] == 404
             assert (await requisitar(app, "GET", "/openapi.json"))[0] == 404
-            print("[OK] 1. Saude, versao semantica e modo producao (/docs e /openapi.json ocultos)")
+            print("[OK] 1. Saude, versao semantica, SQLite WAL+NORMAL e modo producao")
 
             # 2. Hardening da vitrine e login
             st, _, _, home_bytes = await requisitar(app, "GET", "/")
@@ -335,7 +342,7 @@ async def executar_suite() -> None:
         _limpar_handlers(obter_logger_aplicacao())
         _limpar_handlers(obter_logger_auditoria())
 
-    print("\nSUCESSO: Todos os testes automatizados da v1.0.0 passaram!")
+    print(f"\nSUCESSO: Todos os testes automatizados da v{VERSAO} passaram!")
 
 
 if __name__ == "__main__":

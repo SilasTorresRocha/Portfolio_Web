@@ -21,7 +21,10 @@ from aplicacao.registros import (
 )
 from aplicacao.rotas.administracao import roteador_admin
 from aplicacao.rotas.publicas import roteador_publico
-from aplicacao.servicos.metricas import agendador_relatorio_diario
+from aplicacao.servicos.metricas import (
+    agendador_relatorio_diario,
+    descarregar_buffer_acessos,
+)
 from aplicacao.versao import REPOSITORIO_URL, VERSAO
 
 PASTA_APLICACAO = Path(__file__).resolve().parent
@@ -67,6 +70,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
             await tarefa_relatorio
         except asyncio.CancelledError:
             pass
+        descarregar_buffer_acessos(cfg)
         logger_app.info("Aplicação finalizada.")
 
 
@@ -114,6 +118,7 @@ def criar_aplicacao() -> FastAPI:
 
         ignorar_log_acesso = (
             request.url.path.startswith("/estaticos/")
+            or (request.url.path.startswith("/midias/") and resposta.status_code < 400)
             or (request.url.path == "/saude" and resposta.status_code < 400)
         )
         if not ignorar_log_acesso:

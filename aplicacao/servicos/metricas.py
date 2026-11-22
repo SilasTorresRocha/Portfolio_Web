@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import html
+import threading
 from datetime import datetime, timedelta
 from typing import Any
 from urllib.parse import urlparse
@@ -21,6 +22,11 @@ from aplicacao.registros import (
 )
 from aplicacao.servicos.notificacoes import enviar_email
 from aplicacao.versao import VERSAO
+
+TAMANHO_LOTE_ACESSOS = 30
+LIMITE_MAXIMO_BUFFER_ACESSOS = 1000
+_lock_buffer_acessos = threading.Lock()
+_buffer_acessos: list[tuple[str, str, str, str, str, str, str, int, str]] = []
 
 PADROES_BOT = (
     "bot",
@@ -73,6 +79,35 @@ def _extrair_origem(request: Request) -> str:
         return "direto"
 
 
+def descarregar_buffer_acessos(config: Configuracoes | None = None) -> int:
+    """Persiste em lote (1 única transação) os acessos acumulados em RAM."""
+    with _lock_buffer_acessos:
+        if not _buffer_acessos:
+            return 0
+        lote = list(_buffer_acessos)
+        _buffer_acessos.clear()
+
+    cfg = config or obter_configuracoes()
+    try:
+        with obter_conexao(cfg) as conexao:
+            conexao.executemany(
+                """
+                INSERT INTO acessos (
+                    criado_em, data_local, tipo, caminho, referencia, ip, origem, eh_bot, user_agent
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                lote,
+            )
+        return len(lote)
+    except Exception as erro:
+        obter_logger_aplicacao().warning("Falha ao gravar lote de acessos (%s itens): %s", len(lote), erro)
+        with _lock_buffer_acessos:
+            espaco = max(0, LIMITE_MAXIMO_BUFFER_ACESSOS - len(_buffer_acessos))
+            if espaco > 0:
+                _buffer_acessos[:0] = lote[:espaco]
+        return 0
+
+
 def registrar_acesso(
     request: Request,
     *,
@@ -80,7 +115,7 @@ def registrar_acesso(
     referencia: str = "",
     config: Configuracoes | None = None,
 ) -> bool:
-    """Registra visita pública ignorando admin logado e IPs configurados em PORTFOLIO_IPS_IGNORADOS."""
+    """Acumula visita pública em RAM (flush em lote) ignorando admin logado e IPs configurados."""
     cfg = config or obter_configuracoes()
 
     # 1. Ignora sempre quando o administrador está autenticado no /config
@@ -97,30 +132,27 @@ def registrar_acesso(
     origem = _extrair_origem(request)
     caminho = request.url.path[:200]
 
-    try:
-        with obter_conexao(cfg) as conexao:
-            conexao.execute(
-                """
-                INSERT INTO acessos (
-                    criado_em, data_local, tipo, caminho, referencia, ip, origem, eh_bot, user_agent
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    agora_iso(),
-                    data_local_hoje(),
-                    tipo[:30],
-                    caminho,
-                    (referencia or "")[:160],
-                    ip[:80],
-                    origem,
-                    eh_bot,
-                    user_agent,
-                ),
-            )
-        return True
-    except Exception as erro:
-        obter_logger_aplicacao().warning("Falha ao gravar métrica de acesso: %s", erro)
-        return False
+    registro = (
+        agora_iso(),
+        data_local_hoje(),
+        tipo[:30],
+        caminho,
+        (referencia or "")[:160],
+        ip[:80],
+        origem,
+        eh_bot,
+        user_agent,
+    )
+
+    deve_descarregar = False
+    with _lock_buffer_acessos:
+        if len(_buffer_acessos) < LIMITE_MAXIMO_BUFFER_ACESSOS:
+            _buffer_acessos.append(registro)
+        deve_descarregar = len(_buffer_acessos) >= TAMANHO_LOTE_ACESSOS
+
+    if deve_descarregar:
+        descarregar_buffer_acessos(cfg)
+    return True
 
 
 def _contar_alertas_login_no_periodo(
@@ -154,6 +186,7 @@ def obter_resumo_acessos(
 ) -> dict[str, Any]:
     """Consolida métricas de acesso humano, bots, projetos, PDFs e origens."""
     cfg = config or obter_configuracoes()
+    descarregar_buffer_acessos(cfg)
     agora_local = datetime.now(tz=_obter_fuso_horario())
 
     if data_alvo:
@@ -371,13 +404,14 @@ def enviar_relatorio_diario(
 
 
 async def agendador_relatorio_diario(config: Configuracoes) -> None:
-    """Loop assíncrono leve que dispara o relatório diário no horário configurado."""
+    """Loop assíncrono leve (60s): descarrega buffer de acessos e dispara relatório diário."""
     logger = obter_logger_aplicacao()
     hora_alvo, minuto_alvo = [int(p) for p in config.relatorio_hora.split(":")]
 
     while True:
         try:
             await asyncio.sleep(60)
+            await asyncio.to_thread(descarregar_buffer_acessos, config)
             if not config.smtp_configurado:
                 continue
             agora = datetime.now(tz=_obter_fuso_horario())
@@ -388,5 +422,5 @@ async def agendador_relatorio_diario(config: Configuracoes) -> None:
         except asyncio.CancelledError:
             break
         except Exception as erro:
-            logger.error("Erro no agendador de relatório diário: %s", erro)
+            logger.error("Erro no agendador de métricas/relatório: %s", erro)
 

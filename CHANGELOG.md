@@ -3,6 +3,12 @@
 Este projeto segue [Versionamento Semântico (SemVer)](https://semver.org/lang/pt-BR/).
 A versão ativa é centralizada em `aplicacao/versao.py`.
 
+## [1.0.1] — Otimizações de Baixo I/O para SDCard / Orange Pi
+* **SQLite otimizado para flash/SDCard:** `PRAGMA synchronous = NORMAL` e `PRAGMA temp_store = MEMORY` por conexão mantendo `journal_mode = WAL` persistente ativado na inicialização.
+* **Buffer de métricas em RAM:** visitas públicas acumuladas em memória e gravadas em lote (1 única transação) a cada 60s, a cada 30 eventos, sob demanda ao consultar relatórios ou no encerramento do container.
+* **Logs mais enxutos em disco:** `GET /midias/*` com status `< 400` silenciado no `aplicacao.log` (erros e tentativas inválidas continuam registrados, assim como toda a trilha `auditoria.log`).
+* **Rotação de log do Docker:** limite `max-size: 5m` e `max-file: 2` no `docker-compose.yml`.
+
 ## [1.0.0] — Lançamento Inicial Consolidado
 * **Vitrine escalável:** limite inicial de 10 tags mais usadas com botão expansível (`+ N tags` / `Mostrar menos`) mantendo a tag filtrada sempre visível.
 * **Generalização completa:** placeholders e perfil inicial tornados 100% agnósticos para uso por qualquer área profissional.

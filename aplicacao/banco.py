@@ -135,7 +135,8 @@ def obter_conexao(config: Configuracoes | None = None) -> Iterator[sqlite3.Conne
     conexao.row_factory = sqlite3.Row
     try:
         conexao.execute("PRAGMA foreign_keys = ON;")
-        conexao.execute("PRAGMA journal_mode = WAL;")
+        conexao.execute("PRAGMA synchronous = NORMAL;")
+        conexao.execute("PRAGMA temp_store = MEMORY;")
         conexao.execute("PRAGMA busy_timeout = 5000;")
         yield conexao
         conexao.commit()
@@ -147,9 +148,10 @@ def obter_conexao(config: Configuracoes | None = None) -> Iterator[sqlite3.Conne
 
 
 def inicializar_banco(config: Configuracoes | None = None) -> None:
-    """Cria tabelas, índices e garante o registro inicial de perfil."""
+    """Ativa WAL (persistente no arquivo), cria tabelas/índices e garante o perfil inicial."""
     cfg = config or obter_configuracoes()
     with obter_conexao(cfg) as conexao:
+        conexao.execute("PRAGMA journal_mode = WAL;")
         conexao.executescript(SCHEMA_SQL)
         existente = conexao.execute("SELECT id FROM perfil WHERE id = 1").fetchone()
         if existente is None:
