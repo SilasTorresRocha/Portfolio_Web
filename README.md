@@ -1,4 +1,4 @@
-# Portfólio Técnico Self-Hosted (`v1.0.1`)
+# Portfólio Técnico Self-Hosted (`v1.0.2`)
 
 Aplicação web self-hosted para apresentar projetos de forma visual, direta e profissional — com galeria de fotos em alta definição (zoom tela cheia), leitura em camadas (**Problema → Solução → Resultado** + Markdown), anexos comprobatórios em PDF, painel administrativo `/config`, backup completo com validação criptográfica e relatórios de acesso por e-mail.
 

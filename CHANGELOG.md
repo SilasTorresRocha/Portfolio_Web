@@ -3,6 +3,9 @@
 Este projeto segue [Versionamento Semântico (SemVer)](https://semver.org/lang/pt-BR/).
 A versão ativa é centralizada em `aplicacao/versao.py`.
 
+## [1.0.2] — Atualização do link do repositório
+* **Rodapé e metadados:** atualizado `REPOSITORIO_URL` em `aplicacao/versao.py` para `https://github.com/SilasTorresRocha/Portfolio_Web`.
+
 ## [1.0.1] — Otimizações de Baixo I/O para SDCard / Orange Pi
 * **SQLite otimizado para flash/SDCard:** `PRAGMA synchronous = NORMAL` e `PRAGMA temp_store = MEMORY` por conexão mantendo `journal_mode = WAL` persistente ativado na inicialização.
 * **Buffer de métricas em RAM:** visitas públicas acumuladas em memória e gravadas em lote (1 única transação) a cada 60s, a cada 30 eventos, sob demanda ao consultar relatórios ou no encerramento do container.
